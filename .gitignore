@@ -77,3 +77,6 @@ yarn-error.log
 # Build locali (simulatore e iPhone)
 ios/build-sim/
 ios/build-device/
+
+# APK pronti da installare (non nel repository)
+dist/

@@ -93,6 +93,17 @@ android {
             keyPassword 'android'
         }
     }
+    // Un APK per architettura: la libreria Go di LNC pesa ~40 MB per ciascuna,
+    // così il telefono scarica solo quella che gli serve (arm64 per quasi tutti).
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a", "armeabi-v7a"
+            universalApk false
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
