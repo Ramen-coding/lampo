@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View} from 'react-native';
+import {KeyboardAvoidingView, StyleSheet, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {Button, CameraIcon, ChipButton, PasteIcon, TextLink, colors, type} from '../components/ui';
 import {Scanner} from '../components/Scanner';
@@ -82,7 +82,7 @@ export function PairScreen({onPair, onDemo}: Props) {
   }
 
   return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={s.root} behavior="padding">
       <View style={{gap: 10}}>
         <Text style={[type.title, {color: colors.text}]}>Collega il tuo nodo</Text>
         <Text style={[type.body, {color: colors.muted, lineHeight: 24}]}>

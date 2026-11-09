@@ -2,6 +2,6 @@
   "name": "telecomando-biometrics",
   "version": "1.0.0",
   "private": true,
-  "description": "Face ID / Touch ID tramite LocalAuthentication (modulo locale)",
+  "description": "Face ID / Touch ID (iOS) e impronta / volto (Android): modulo locale",
   "main": "index.ts"
 }

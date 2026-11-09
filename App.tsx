@@ -44,7 +44,7 @@ export default function App() {
   const [balanceAt, setBalanceAt] = useState<number | null>(null);
   const [cached, setCached] = useState(true);
 
-  // Blocco con Face ID: richiesto all'apertura e ogni volta che l'app torna dal background.
+  // Blocco con Face ID (impronta/volto su Android): richiesto all'apertura e ogni volta che l'app torna dal background.
   const [locked, setLockedState] = useState(true);
   const lockedRef = useRef(true);
   const setLocked = (v: boolean) => {
@@ -143,6 +143,9 @@ export default function App() {
       setAppActive(state === 'active');
       const protectedApp = store.current?.isPaired || node.isDemo();
       if (!protectedApp) return;
+      // Android: il PIN del telefono si apre in una schermata di sistema separata e l'app
+      // risulta "in background". Mentre il riquadro di sblocco è aperto non si riblocca.
+      if (promptingRef.current) return;
       if (state === 'background') {
         setLocked(true);
       } else if (state === 'active' && prev === 'background') {

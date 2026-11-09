@@ -1,64 +1,105 @@
-# Lampo (iOS)
+# ⚡ Lampo
 
-App iOS minimale per usare il proprio nodo LND da iPhone tramite Lightning Node Connect:
-saldo, Invia, Ricevi. Niente canali, niente impostazioni avanzate, niente Tor o VPN.
+**A tiny remote control for your own Lightning node.**
 
-## Come funziona
+Lampo ("lightning" in Italian) turns your phone into a remote for your LND node. It connects
+through [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect)
+(LNC): no open ports, no Tor, no VPN, no custodian. Your node, your keys, your sats.
 
-- **Apertura veloce**: all'avvio partono insieme Face ID e l'handshake LNC. Quando il volto
-  è riconosciuto il collegamento è spesso già pronto; nel frattempo si vede l'ultimo saldo
-  salvato (in grigio) finché il nodo non risponde.
-- **Blocco**: Face ID (o il codice del telefono) viene chiesto a ogni apertura e ogni volta
-  che l'app torna dal background. Nell'anteprima del multitasking il saldo è coperto.
-- **Invia**: campo per fattura Lightning, Lightning Address (`nome@dominio`) o link LNURL
-  (`lnurl1…`, `lnurlp://`); sotto, Incolla e Fotocamera. Il tasto QR in Home apre subito
-  la fotocamera. Legge anche i QR `bitcoin:…?lightning=…`.
-- **Pagamenti**: commissioni libere (tetto di 1 BTC, perché in LND 0 = "solo route gratuite")
-  e fino a 128 parti per pagamento (multi-path), per la massima probabilità di successo.
-- **Ricevi**: importo, QR della fattura, conferma quando viene pagata.
-- **Tema AMOLED**, swipe da sinistra verso destra per tornare indietro.
-- **Demo** (solo build di sviluppo): "Prova la demo" nella schermata di abbinamento usa un
-  nodo fittizio per vedere l'app senza collegarsi.
+It does three things and tries to do them fast:
 
-## Struttura
+- **Balance:** see what you have, in sats or euros (tap to switch).
+- **Send:** pay invoices, Lightning Addresses and LNURL by pasting or scanning a QR.
+- **Receive:** type an amount, show the QR, and see it confirmed when it's paid.
+
+No channel management, no advanced settings. For those, use your node's own tools.
+
+## Features
+
+- **Pairing in seconds:** scan the LNC QR from Lightning Terminal, or paste the 10-word
+  pairing phrase.
+- **Fast start:** biometric unlock and the LNC handshake run in parallel. The last known
+  balance is shown (greyed out) until the node answers.
+- **Locked by default:** Face ID / Touch ID on iPhone, or fingerprint / face on Android,
+  with the phone's passcode as a fallback. You are asked at every launch and every return
+  from the background, and the balance is hidden in the app switcher.
+- **Payments that go through:** fees are left uncapped and payments can split into up to
+  128 parts (multi-path). A **Big payment** switch gives LND 5 minutes instead of 60 seconds
+  to find a route.
+- **Everything you can scan:** BOLT11 invoices, Lightning Addresses (`name@domain`), LNURL
+  (`lnurl1…`, `lnurlp://`) and `bitcoin:…?lightning=…` QR codes. The QR button on the home
+  screen opens the camera straight away.
+- **Sats ⇄ euros:** tap the balance. The BTC/EUR rate comes from
+  [mempool.space](https://mempool.space), which only receives the price request and never
+  your balance. The last rate is kept for offline use.
+- **AMOLED black theme**, and swipe back from anywhere on the screen.
+- **Demo mode** (development builds only): try the app against a fake node.
+
+## Platforms
+
+| Platform | Status |
+| --- | --- |
+| iOS 15.1+ | Used daily on a real node |
+| Android 7.0+ | New: runs in the emulator, not yet tried on a real phone or node |
+
+Both apps share the same React Native code. Only the LNC library and the biometric unlock
+module are native per platform.
+
+## Security
+
+- The link between the app and Lightning Terminal is end-to-end encrypted (Noise handshake
+  with SPAKE2). The mailbox server in the middle only relays ciphertext.
+- The 10-word phrase is used once, to pair. After that the app uses keys stored in the iOS
+  Keychain or Android encrypted storage, and they never leave the phone.
+- In Lightning Terminal, create a **Custom** session with only the permissions Lampo needs:
+  read balance, create invoices and send payments. Don't use an Admin session.
+- You can use your own mailbox server: tap "Uso un mailbox server mio" when pairing.
+
+## Project layout
 
 ```
-App.tsx                         avvio, blocco Face ID, riconnessione, navigazione
-src/lnc/node.ts                 unico punto di contatto con il nodo (LNC)
-src/lnc/demoNode.ts             nodo fittizio per la demo
-src/lnc/lightningAddress.ts     riconoscimento input, Lightning Address e LNURL-pay
-src/lnc/credentialStore.ts      chiavi LNC nel Keychain
-src/cache.ts                    saldo in cache, formattazione
-src/components/ui.tsx           colori, tipografia, pulsanti, icone
-src/screens/                    Abbina, Blocco, Home, Invia, Ricevi
-modules/biometrics/             modulo nativo Face ID (LocalAuthentication)
-scripts/fetch-lnc-ios.sh        scarica il framework LNC per iOS (postinstall)
+App.tsx                       startup, lock, reconnection, navigation
+src/lnc/node.ts               the only place that talks to the node (LNC)
+src/lnc/pairing.ts            reads pairing data from QR codes, links and pasted text
+src/lnc/lightningAddress.ts   input detection, Lightning Address and LNURL-pay
+src/lnc/credentialStore.ts    LNC keys in secure storage
+src/lnc/demoNode.ts           fake node for demo mode
+src/price.ts                  BTC/EUR rate and euro formatting
+src/screens/                  Pair, Lock, Home, Send, Receive
+src/components/               UI kit, QR scanner
+modules/biometrics/           native unlock module (iOS LocalAuthentication, Android BiometricPrompt)
+scripts/fetch-lnc.sh          downloads the LNC native libraries (runs on npm install)
+scripts/make-icon.swift       draws the app icon and logo
+ios/  android/                native projects
 ```
 
-## Setup
+## Building
 
-Servono Node ≥ 22, Xcode e CocoaPods (`brew install cocoapods`).
+You need Node ≥ 22.
 
+```bash
+npm install   # also downloads the LNC libraries for iOS and Android
 ```
-npm install            # scarica anche Lncmobile.xcframework (script postinstall)
+
+**iOS:** Xcode and CocoaPods.
+
+```bash
 cd ios && pod install && cd ..
-npx react-native start # Metro, per le build di sviluppo
+npx react-native start
 ```
 
-Poi apri `ios/TelecomandoLnc.xcworkspace` in Xcode e avvia su simulatore o iPhone.
+Then open `ios/TelecomandoLnc.xcworkspace` in Xcode and run it on a simulator or an iPhone.
 
-## Sicurezza
+**Android:** JDK 17 and the Android SDK (platform 37, NDK 27.1, CMake 3.22).
 
-- Il collegamento è cifrato da un capo all'altro tra app e Lightning Terminal: la frase
-  di 10 parole serve solo al primo abbinamento (handshake Noise + SPAKE2), poi si usano
-  chiavi salvate nel Keychain. Il mailbox server inoltra solo dati cifrati.
-- In Lightning Terminal crea una sessione **Custom** con i soli permessi necessari
-  (lettura saldo, creazione fatture, pagamenti), non una sessione Admin.
-- Le chiavi LNC restano solo nel Keychain del telefono.
-- Se usi un mailbox server tuo, inseriscilo al primo abbinamento.
+```bash
+npx react-native run-android
+```
 
-## Prossimi passi
+## Notes
 
-- Icona dell'app
-- Prova completa con un nodo vero (abbinamento, invio, ricezione)
-- Mailbox server self-hosted su VPS europeo per ridurre la latenza
+The UI is in Italian for now. The internal project name is still `TelecomandoLnc`
+(Italian for "LNC remote control"); the app is called Lampo.
+
+Lampo is built on [`@lightninglabs/lnc-rn`](https://github.com/lightninglabs/lnc-rn) by
+Lightning Labs.

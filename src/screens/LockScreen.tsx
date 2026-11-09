@@ -15,6 +15,7 @@ const LABEL: Record<BiometryKind, string> = {
   faceID: 'Sblocca con Face ID',
   touchID: 'Sblocca con Touch ID',
   opticID: 'Sblocca con Optic ID',
+  biometric: 'Sblocca',
   passcode: 'Sblocca con il codice',
   none: 'Sblocca',
 };

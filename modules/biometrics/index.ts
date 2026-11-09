@@ -1,6 +1,7 @@
 import {NativeModules} from 'react-native';
 
-export type BiometryKind = 'faceID' | 'touchID' | 'opticID' | 'passcode' | 'none';
+// 'biometric': Android (impronta o volto, il sistema non dice quale).
+export type BiometryKind = 'faceID' | 'touchID' | 'opticID' | 'biometric' | 'passcode' | 'none';
 export type AuthResult = 'ok' | 'cancel' | 'unavailable' | 'failed';
 
 const native = NativeModules.Biometrics as

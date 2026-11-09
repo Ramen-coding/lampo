@@ -1,0 +1,23 @@
+// Sostituisce android/build.gradle di @lightninglabs/lnc-rn (copiato da scripts/fetch-lnc.sh).
+// L'originale usa AGP 3.2 e jcenter, che con React Native 0.88 non compilano più.
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+android {
+  namespace 'engineering.lightning.lnc.mobile.rn'
+  compileSdk rootProject.ext.compileSdkVersion
+  defaultConfig {
+    minSdkVersion rootProject.ext.minSdkVersion
+  }
+}
+
+repositories {
+  google()
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+  // La libreria Go di LNC: qui serve solo per compilare, l'app la include (android/app/build.gradle).
+  compileOnly files('libs/lnc-mobile.aar')
+}
