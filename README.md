@@ -1,105 +1,72 @@
 # ⚡ Lampo
 
-**A tiny remote control for your own Lightning node.**
+**A simple remote for paying with your own Lightning node, on the go.**
 
-Lampo ("lightning" in Italian) turns your phone into a remote for your LND node. It connects
-through [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect)
-(LNC): no open ports, no Tor, no VPN, no custodian. Your node, your keys, your sats.
+Lampo ("lightning" in Italian) is a small, light app that connects your phone to your LND
+node through [Lightning Node Connect](https://docs.lightning.engineering/lightning-network-tools/lightning-terminal/lightning-node-connect)
+(LNC). No open ports, no Tor, no VPN, no custodian.
 
-It does three things and tries to do them fast:
+It is **not a node manager**. It does three things: show your balance, send and receive.
+For channels and everything else, use your node's own tools.
 
-- **Balance:** see what you have, in sats or euros (tap to switch).
-- **Send:** pay invoices, Lightning Addresses and LNURL by pasting or scanning a QR.
-- **Receive:** type an amount, show the QR, and see it confirmed when it's paid.
+> **Beta.** Lampo is a personal project that does this one job. It doesn't aim to be the
+> reference app for anything. Use it with amounts you are comfortable with.
 
-No channel management, no advanced settings. For those, use your node's own tools.
+## Download
 
-## Features
-
-- **Pairing in seconds:** scan the LNC QR from Lightning Terminal, or paste the 10-word
-  pairing phrase.
-- **Fast start:** biometric unlock and the LNC handshake run in parallel. The last known
-  balance is shown (greyed out) until the node answers.
-- **Locked by default:** Face ID / Touch ID on iPhone, or fingerprint / face on Android,
-  with the phone's passcode as a fallback. You are asked at every launch and every return
-  from the background, and the balance is hidden in the app switcher.
-- **Payments that go through:** fees are left uncapped and payments can split into up to
-  128 parts (multi-path). A **Big payment** switch gives LND 5 minutes instead of 60 seconds
-  to find a route.
-- **Everything you can scan:** BOLT11 invoices, Lightning Addresses (`name@domain`), LNURL
-  (`lnurl1…`, `lnurlp://`) and `bitcoin:…?lightning=…` QR codes. The QR button on the home
-  screen opens the camera straight away.
-- **Sats ⇄ euros:** tap the balance. The BTC/EUR rate comes from
-  [mempool.space](https://mempool.space), which only receives the price request and never
-  your balance. The last rate is kept for offline use.
-- **AMOLED black theme**, and swipe back from anywhere on the screen.
-- **Demo mode** (development builds only): try the app against a fake node.
-
-## Platforms
-
-| Platform | Status |
+| Platform | How |
 | --- | --- |
-| iOS 15.1+ | Used daily on a real node |
-| Android 7.0+ | New: runs in the emulator, not yet tried on a real phone or node |
+| Android 7.0+ | [**Download the APK**](https://github.com/Ramen-coding/lampo/releases/latest/download/Lampo-android-arm64.apk) (arm64, most phones). Older 32-bit phones: [armv7 APK](https://github.com/Ramen-coding/lampo/releases/latest/download/Lampo-android-armv7.apk). |
+| iOS 15.1+ | No store build yet: [build it with Xcode](#build-it-yourself). |
 
-Both apps share the same React Native code. Only the LNC library and the biometric unlock
-module are native per platform.
+On Android, open the APK and allow the install when asked. The beta is signed with a test
+key, so Play Protect may warn you.
+
+## Use it
+
+1. In Lightning Terminal, create an LNC session. Pick **Custom** and allow only what Lampo
+   needs: read balance, create invoices, send payments.
+2. Open Lampo and scan the session QR, or paste the 10-word pairing phrase.
+3. Done. From now on the app opens with Face ID, fingerprint or your phone passcode.
+
+- **Pay:** tap the QR button and scan, or paste an invoice, a Lightning Address
+  (`name@domain`) or an LNURL. For large amounts, turn on **Pagamento grosso** to give the
+  node up to 5 minutes to find a route.
+- **Receive:** type an amount and show the QR.
+- **Balance:** tap it to switch between sats and euros.
+
+The interface is in Italian for now.
 
 ## Security
 
-- The link between the app and Lightning Terminal is end-to-end encrypted (Noise handshake
-  with SPAKE2). The mailbox server in the middle only relays ciphertext.
-- The 10-word phrase is used once, to pair. After that the app uses keys stored in the iOS
-  Keychain or Android encrypted storage, and they never leave the phone.
-- In Lightning Terminal, create a **Custom** session with only the permissions Lampo needs:
-  read balance, create invoices and send payments. Don't use an Admin session.
-- You can use your own mailbox server: tap "Uso un mailbox server mio" when pairing.
+- The link to your node is end-to-end encrypted. The mailbox server in the middle only
+  relays ciphertext.
+- The pairing phrase is used once. After that the app uses keys kept in the iOS Keychain or
+  Android encrypted storage.
+- Fees are uncapped and payments can split into up to 128 parts, so they go through. Check
+  the fee shown after each payment.
+- LNURL and Lightning Addresses are only contacted over https.
 
-## Project layout
-
-```
-App.tsx                       startup, lock, reconnection, navigation
-src/lnc/node.ts               the only place that talks to the node (LNC)
-src/lnc/pairing.ts            reads pairing data from QR codes, links and pasted text
-src/lnc/lightningAddress.ts   input detection, Lightning Address and LNURL-pay
-src/lnc/credentialStore.ts    LNC keys in secure storage
-src/lnc/demoNode.ts           fake node for demo mode
-src/price.ts                  BTC/EUR rate and euro formatting
-src/screens/                  Pair, Lock, Home, Send, Receive
-src/components/               UI kit, QR scanner
-modules/biometrics/           native unlock module (iOS LocalAuthentication, Android BiometricPrompt)
-scripts/fetch-lnc.sh          downloads the LNC native libraries (runs on npm install)
-scripts/make-icon.swift       draws the app icon and logo
-ios/  android/                native projects
-```
-
-## Building
+## Build it yourself
 
 You need Node ≥ 22.
 
 ```bash
-npm install   # also downloads the LNC libraries for iOS and Android
+npm install
 ```
 
-**iOS:** Xcode and CocoaPods.
+**iOS** (Xcode and CocoaPods):
 
 ```bash
 cd ios && pod install && cd ..
-npx react-native start
 ```
 
-Then open `ios/TelecomandoLnc.xcworkspace` in Xcode and run it on a simulator or an iPhone.
+Then open `ios/TelecomandoLnc.xcworkspace` in Xcode and run it on your iPhone.
 
-**Android:** JDK 17 and the Android SDK (platform 37, NDK 27.1, CMake 3.22).
+**Android** (JDK 17 and the Android SDK):
 
 ```bash
 npx react-native run-android
 ```
 
-## Notes
-
-The UI is in Italian for now. The internal project name is still `TelecomandoLnc`
-(Italian for "LNC remote control"); the app is called Lampo.
-
-Lampo is built on [`@lightninglabs/lnc-rn`](https://github.com/lightninglabs/lnc-rn) by
-Lightning Labs.
+Built with React Native on [`@lightninglabs/lnc-rn`](https://github.com/lightninglabs/lnc-rn).
