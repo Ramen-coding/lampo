@@ -1,0 +1,564 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 720px; background: #000; overflow: hidden; }
+  body { font-family: 'Inter', sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+  #stage { position: absolute; inset: 0;
+    background: radial-gradient(900px 600px at 30% 50%, #151007 0%, #000 60%); }
+
+  /* ---------- telefono ---------- */
+  #phone { position: absolute; left: 150px; top: 26px; width: 390px; height: 844px;
+    transform-origin: 0 0; transform: scale(0.79); }
+  #bezel { position: absolute; inset: -13px; border-radius: 62px; background: #1b1b1d;
+    box-shadow: 0 0 0 2px #3a3a3c, 0 40px 120px rgba(247,147,26,0.10); }
+  #screen { position: absolute; inset: 0; border-radius: 50px; overflow: hidden; background: #000; }
+  #island { position: absolute; top: 11px; left: 50%; width: 122px; height: 35px; margin-left: -61px;
+    background: #000; border-radius: 20px; z-index: 50; }
+  #statusbar { position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between; padding: 6px 34px 0 46px;
+    font-weight: 600; font-size: 16px; }
+  #homeind { position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px;
+    border-radius: 3px; background: #fff; z-index: 45; }
+
+  .layer { position: absolute; inset: 0; background: #000; }
+  .safe { position: absolute; top: 54px; left: 0; right: 0; bottom: 34px; }
+  .col { display: flex; flex-direction: column; }
+  .row { display: flex; flex-direction: row; align-self: stretch; gap: 12px; }
+
+  /* tipografia come in ui.tsx */
+  .balance { font-size: 56px; font-weight: 600; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
+  .title { font-size: 22px; font-weight: 600; }
+  .body { font-size: 17px; }
+  .small { font-size: 14px; }
+  .muted { color: #8E8E93; }
+  .green { color: #30D158; }
+  .link { font-size: 14px; color: #8E8E93; text-decoration: underline; }
+
+  .btn { height: 58px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+    flex: 1; font-size: 18px; font-weight: 600; padding: 0 20px; }
+  .primary { background: #F7931A; color: #000; }
+  .secondary { background: #0E0E0E; border: 1.5px solid #262626; color: #fff; }
+  .disabled { opacity: 0.4; }
+  .iconbtn { width: 58px; height: 58px; border-radius: 29px; border: 1.5px solid #262626; background: #0E0E0E;
+    display: flex; align-items: center; justify-content: center; flex: none; }
+  .chip { width: 52px; height: 52px; border-radius: 26px; border: 1px solid #262626;
+    display: flex; align-items: center; justify-content: center; }
+  .input { border-radius: 14px; border: 1.5px solid #262626; background: #0E0E0E; font-size: 17px;
+    padding: 16px; line-height: 23px; }
+  .status { display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 4px; }
+  .header { display: flex; justify-content: space-between; align-items: center; }
+  .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .sub { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+  /* fotocamera */
+  .camera { flex: 1; border-radius: 20px; overflow: hidden; border: 1.5px solid #262626; position: relative;
+    background: radial-gradient(circle at 30% 20%, #3b3326, #15130f 70%); }
+  .viewfinder { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; margin: -110px 0 0 -110px;
+    border-radius: 24px; border: 3px solid rgba(255,255,255,0.85); }
+  .qrcard { position: absolute; left: 50%; top: 50%; }
+  .qrcard svg { display: block; }
+
+  .spinner { width: 22px; height: 22px; }
+
+  /* tastierino numerico iOS (scuro) */
+  #keyboard { position: absolute; left: 0; right: 0; bottom: 0; height: 291px; background: #2b2b2d;
+    padding: 6px 6px 0; z-index: 30; }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .key { height: 47px; border-radius: 6px; background: #6b6b6e; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; font-size: 25px; line-height: 26px; }
+  .key small { font-size: 10px; font-weight: 600; letter-spacing: 2px; line-height: 10px; }
+  .key.flat { background: transparent; }
+  .key.pressed { background: #a3a3a6; }
+
+  /* Face ID */
+  #faceid { position: absolute; left: 50%; top: 50%; width: 160px; height: 160px; margin: -80px 0 0 -80px;
+    border-radius: 30px; background: rgba(58,58,60,0.92); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; z-index: 60; font-size: 15px; font-weight: 500; }
+
+  /* dito */
+  #finger { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 23px;
+    background: rgba(255,255,255,0.35); border: 2px solid rgba(255,255,255,0.7); z-index: 70; pointer-events: none; }
+  #ring { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 23px;
+    border: 2px solid rgba(255,255,255,0.8); z-index: 69; }
+
+  /* ---------- didascalie ---------- */
+  #captions { position: absolute; left: 590px; top: 0; width: 620px; height: 720px; }
+  .cap { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); }
+  .cap .step { font-size: 16px; font-weight: 600; letter-spacing: 3px; color: #F7931A; text-transform: uppercase; }
+  .cap h1 { font-family: 'Inter Display', 'Inter', sans-serif; font-size: 54px; font-weight: 700;
+    letter-spacing: -1.5px; line-height: 1.08; margin: 14px 0 18px; }
+  .cap p { font-size: 24px; line-height: 1.45; color: #a1a1a6; max-width: 560px; }
+  .cap p b { color: #fff; font-weight: 600; }
+  .cap .url { margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 20px; color: #fff; }
+  #dots { position: absolute; left: 590px; bottom: 56px; display: flex; gap: 10px; }
+  #dots div { width: 34px; height: 4px; border-radius: 2px; background: #2a2a2c; overflow: hidden; }
+  #dots div span { display: block; height: 100%; background: #F7931A; width: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="phone">
+    <div id="bezel"></div>
+    <div id="screen">
+      <div id="island"></div>
+      <div id="statusbar">
+        <span>9:41</span>
+        <svg width="78" height="14" viewBox="0 0 78 14" fill="#fff">
+          <rect x="0" y="9" width="3.5" height="5" rx="1"/><rect x="5.5" y="6.5" width="3.5" height="7.5" rx="1"/>
+          <rect x="11" y="4" width="3.5" height="10" rx="1"/><rect x="16.5" y="1" width="3.5" height="13" rx="1"/>
+          <path d="M33 3.2a11 11 0 0 1 15 0l-1.6 1.7a8.6 8.6 0 0 0-11.8 0zM35.6 6a7.3 7.3 0 0 1 9.8 0l-1.6 1.7a5 5 0 0 0-6.6 0zM38.3 8.8a3.4 3.4 0 0 1 4.4 0L40.5 11z"/>
+          <rect x="52.5" y="1.5" width="22" height="11" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".45"/>
+          <rect x="54.5" y="3.5" width="16" height="7" rx="2"/><rect x="75.5" y="5" width="1.8" height="4" rx=".9" fill-opacity=".45"/>
+        </svg>
+      </div>
+
+      <!-- avvio: BrandMark -->
+      <div class="layer" id="launch">
+        <img src="{{LOGO}}" style="position:absolute;left:95px;top:322px;width:200px;height:200px">
+        <div style="position:absolute;left:0;right:0;top:530px;text-align:center;font-size:34px;font-weight:700">Lampo</div>
+      </div>
+
+      <!-- abbinamento -->
+      <div class="layer" id="pair">
+        <div class="safe">
+          <div class="sub" id="pair-form" style="padding:24px;gap:16px">
+            <div class="col" style="gap:10px">
+              <div class="title">Collega il tuo nodo</div>
+              <div class="body muted" style="line-height:24px">In Lightning Terminal crea una sessione Lightning Node Connect, poi inquadra il QR o incolla la frase di abbinamento.</div>
+            </div>
+            <div class="input" id="phrase" style="min-height:110px"></div>
+            <div class="small muted" id="words">0/10 parole</div>
+            <div style="display:flex;gap:20px;justify-content:center">
+              <div class="chip" id="pair-paste">{{PASTE}}</div>
+              <div class="chip" id="pair-cam">{{CAMERA}}</div>
+            </div>
+            <div><span class="link">Uso un mailbox server mio</span></div>
+            <div class="small muted" id="pair-busy">Collegamento al nodo… la prima volta può servire qualche secondo.</div>
+            <div class="row" style="margin-top:auto">
+              <div class="btn primary" id="pair-btn"><span>Collega nodo</span></div>
+            </div>
+          </div>
+          <div class="sub" id="pair-scan" style="padding:24px;gap:16px">
+            <div class="camera" id="cam1">
+              <div class="qrcard" id="card1">
+                <div style="width:300px;height:220px;margin:-97px 0 0 -80px;background:#1d2128;border-radius:10px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,.6)">
+                  <div style="font-size:9px;color:#9aa4b2;margin-bottom:8px">Lightning Terminal · Lightning Node Connect</div>
+                  <div style="display:flex;gap:12px;align-items:center">
+                    <div style="background:#fff;padding:8px;border-radius:6px">{{QR_PAIR}}</div>
+                    <div style="font-size:8px;color:#9aa4b2;line-height:13px">Sessione<br><b style="color:#fff;font-size:10px">Lampo</b><br><br>Tipo: Custom<br>Scade: 90 giorni</div>
+                  </div>
+                </div>
+              </div>
+              <div class="viewfinder"></div>
+            </div>
+            <div class="small muted" style="text-align:center">Inquadra il QR della sessione in Lightning Terminal</div>
+            <div class="row"><div class="btn secondary">Annulla</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- home -->
+      <div class="layer" id="home">
+        <div class="safe col" style="padding:24px">
+          <div class="header">
+            <div class="status"><div class="dot" id="home-dot"></div><span class="small muted" id="home-status"></span></div>
+            <span class="link">Scollega</span>
+          </div>
+          <div class="center" id="home-balance-area">
+            <div id="amount-wrap" style="display:flex;flex-direction:column;align-items:center">
+              <div class="balance" id="home-amount">—</div>
+              <div class="body muted" id="home-unit">sat</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="btn secondary" id="home-receive">Ricevi</div>
+            <div class="iconbtn" id="home-scan">{{QRICON}}</div>
+            <div class="btn primary" id="home-send">Invia</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- invia -->
+      <div class="layer" id="send">
+        <div class="safe col" style="padding:24px;gap:20px">
+          <div class="header"><div class="title">Invia</div><span class="link">Chiudi</span></div>
+          <div style="flex:1;position:relative">
+            <div class="sub" id="send-scan" style="gap:16px">
+              <div class="camera" id="cam2">
+                <div class="qrcard" id="card2">
+                  <div style="width:210px;margin:-150px 0 0 -105px;background:#f4efe6;border-radius:6px;padding:14px;color:#222;box-shadow:0 10px 40px rgba(0,0,0,.6);text-align:center;font-family:'JetBrains Mono',monospace">
+                    <div style="font-size:12px;font-weight:700;margin-bottom:2px">BAR CENTRALE</div>
+                    <div style="font-size:8px;margin-bottom:8px">Caffè e cornetto · 21.000 sat</div>
+                    <div style="display:inline-block;background:#fff;padding:6px">{{QR_PAY}}</div>
+                    <div style="font-size:8px;margin-top:6px">Paga con Lightning ⚡</div>
+                  </div>
+                </div>
+                <div class="viewfinder"></div>
+              </div>
+              <div class="small muted" style="text-align:center" id="send-hint">Inquadra il QR di una fattura o di un indirizzo</div>
+              <div class="row"><div class="btn secondary">Annulla</div></div>
+            </div>
+            <div class="sub" id="send-confirm" style="gap:16px">
+              <div class="center">
+                <div class="balance" id="send-amount">21.000</div>
+                <div class="body muted">sat</div>
+                <div class="body" id="send-desc" style="margin-top:20px">Caffè e cornetto</div>
+                <div class="small muted" id="send-msg" style="margin-top:20px">Pagamento in corso…</div>
+              </div>
+              <div id="toggle" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;border:1.5px solid #262626;background:#0E0E0E">
+                <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+                  <div class="body">Pagamento grosso</div>
+                  <div class="small muted">Tentativi fino a 5 minuti invece di 60 secondi</div>
+                </div>
+                <div style="width:51px;height:31px;border-radius:16px;background:#262626;position:relative">
+                  <div style="position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:14px;background:#fff"></div>
+                </div>
+              </div>
+              <div class="row"><div class="btn primary" id="pay-btn"><span>Paga</span></div></div>
+            </div>
+            <div class="sub" id="send-done" style="gap:16px">
+              <div class="center">
+                <div class="title green">Pagato</div>
+                <div class="balance">21.000</div>
+                <div class="body muted">sat</div>
+                <div class="small muted" style="margin-top:12px">Commissione 6 sat</div>
+              </div>
+              <div class="row"><div class="btn primary" id="send-fatto">Fatto</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ricevi -->
+      <div class="layer" id="receive">
+        <div class="safe col" id="rec-safe" style="padding:24px;gap:20px">
+          <div class="header"><div class="title">Ricevi</div><span class="link">Chiudi</span></div>
+          <div style="flex:1;position:relative">
+            <div class="sub" id="rec-amount" style="align-items:center;justify-content:center;gap:2px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;align-self:stretch">
+                <div class="balance" style="display:flex;align-items:center"><span id="rec-digits"></span><span id="caret" style="display:inline-block;width:3px;height:54px;background:#F7931A;margin-left:2px"></span></div>
+                <div class="body muted">sat</div>
+                <div class="input" style="align-self:stretch;margin-top:24px;height:52px;padding:0 16px;display:flex;align-items:center"><span class="muted">Descrizione (facoltativa)</span></div>
+              </div>
+              <div class="row" style="margin-top:20px"><div class="btn primary" id="rec-create"><span>Crea richiesta</span></div></div>
+            </div>
+            <div class="sub" id="rec-qr" style="align-items:center;justify-content:center;gap:2px">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+                <div style="padding:16px;background:#fff;border-radius:20px">{{QR_INV}}</div>
+                <div class="title" style="margin-top:20px">5.000 sat</div>
+                <div class="small muted">In attesa del pagamento</div>
+              </div>
+              <div class="row"><div class="btn secondary">Copia fattura</div></div>
+            </div>
+            <div class="sub" id="rec-paid" style="gap:2px">
+              <div class="center">
+                <div class="title green">Ricevuti</div>
+                <div class="balance">5.000</div>
+                <div class="body muted">sat</div>
+              </div>
+              <div class="row"><div class="btn primary" id="rec-fatto">Fatto</div></div>
+            </div>
+          </div>
+        </div>
+        <div id="keyboard">
+          <div class="keys">
+            <div class="key" id="k1">1</div><div class="key" id="k2">2<small>ABC</small></div><div class="key" id="k3">3<small>DEF</small></div>
+            <div class="key" id="k4">4<small>GHI</small></div><div class="key" id="k5">5<small>JKL</small></div><div class="key" id="k6">6<small>MNO</small></div>
+            <div class="key" id="k7">7<small>PQRS</small></div><div class="key" id="k8">8<small>TUV</small></div><div class="key" id="k9">9<small>WXYZ</small></div>
+            <div class="key flat"></div><div class="key" id="k0">0</div><div class="key flat" style="font-size:22px">⌫</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- blocco -->
+      <div class="layer" id="lock">
+        <img src="{{LOGO}}" style="position:absolute;left:95px;top:322px;width:200px;height:200px">
+        <div style="position:absolute;left:0;right:0;top:530px;text-align:center;font-size:34px;font-weight:700">Lampo</div>
+        <div style="position:absolute;left:24px;right:24px;bottom:90px" class="row" id="lock-btn"><div class="btn secondary">Sblocca con Face ID</div></div>
+      </div>
+      <div id="faceid">
+        <svg id="face-glyph" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 18V10a6 6 0 0 1 6-6h8M46 4h8a6 6 0 0 1 6 6v8M60 46v8a6 6 0 0 1-6 6h-8M18 60h-8a6 6 0 0 1-6-6v-8"/>
+          <path d="M22 22v6M42 22v6M32 22v14h-4M23 44c5 5 13 5 18 0"/>
+        </svg>
+        <svg id="face-ok" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="32" cy="32" r="28" stroke-width="3"/><path d="M19 33l9 9 18-19"/>
+        </svg>
+        <span>Face ID</span>
+      </div>
+
+      <div id="ring"></div>
+      <div id="finger"></div>
+      <div id="homeind"></div>
+    </div>
+  </div>
+
+  <div id="captions">
+    <div class="cap" id="c0">
+      <div class="step">⚡ Lampo</div>
+      <h1>Your Lightning node,<br>in your pocket.</h1>
+      <p>A small remote for your own LND node, over <b>Lightning Node Connect</b>. No open ports, no Tor, no custodian.</p>
+    </div>
+    <div class="cap" id="c1">
+      <div class="step">1 · Pair once</div>
+      <h1>Scan the session QR.</h1>
+      <p>Create an LNC session in <b>Lightning Terminal</b>, then scan its QR or paste the 10‑word phrase.</p>
+    </div>
+    <div class="cap" id="c2">
+      <div class="step">2 · Balance</div>
+      <h1>Your balance,<br>at a glance.</h1>
+      <p>Tap it to switch between <b>sats</b> and <b>euros</b>.</p>
+    </div>
+    <div class="cap" id="c3">
+      <div class="step">3 · Pay</div>
+      <h1>Scan and pay.</h1>
+      <p>Tap the QR button and scan an <b>invoice</b>, a <b>Lightning Address</b> or an <b>LNURL</b>. Check the amount, then pay.</p>
+    </div>
+    <div class="cap" id="c3b">
+      <div class="step">3 · Pay</div>
+      <h1>Paid.</h1>
+      <p>The routing fee is shown after <b>every</b> payment.</p>
+    </div>
+    <div class="cap" id="c4">
+      <div class="step">4 · Receive</div>
+      <h1>Type an amount,<br>show the QR.</h1>
+      <p>Lampo creates the invoice on your node and waits for the payment.</p>
+    </div>
+    <div class="cap" id="c4b">
+      <div class="step">4 · Receive</div>
+      <h1>Received.</h1>
+      <p>You see it the moment the invoice is settled.</p>
+    </div>
+    <div class="cap" id="c5">
+      <div class="step">5 · Locked</div>
+      <h1>Opens with<br>Face ID.</h1>
+      <p>Every time you come back: Face ID, fingerprint or your phone passcode. Keys stay in the <b>Keychain</b> / Android encrypted storage.</p>
+    </div>
+    <div class="cap" id="c6">
+      <div class="step">⚡ Lampo · beta</div>
+      <h1>Balance. Send.<br>Receive.</h1>
+      <p>That's it. For channels and everything else, use your node's own tools.</p>
+      <div class="url">github.com/Ramen-coding/lampo</div>
+    </div>
+  </div>
+  <div id="dots"><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const outCubic = x => 1 - Math.pow(1 - x, 3);
+const inOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const inQuad = x => x * x;
+const fmt = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const show = (id, v) => { $(id).style.display = v ? '' : 'none'; };
+const op = (id, v) => { $(id).style.opacity = v; };
+
+// fade in/out di un livello tra a e b (con durata d)
+const window_ = (t, a, b, d = 0.15) => Math.min(prog(t, a, a + d), 1 - prog(t, b, b + d));
+
+const SPINNER = (color) => `<svg class="spinner" viewBox="0 0 24 24">${[...Array(8)].map((_, i) =>
+  `<rect x="11" y="2" width="2.4" height="6" rx="1.2" fill="${color}" opacity="${0.25 + 0.75 * i / 7}" transform="rotate(${i * 45} 12 12)"/>`).join('')}</svg>`;
+function spinner(el, t, color) {
+  if (!el.dataset.sp) { el.innerHTML = SPINNER(color); el.dataset.sp = 1; }
+  el.firstChild.style.transform = `rotate(${Math.floor(t * 12) * 45}deg)`;
+}
+function label(el, text) { if (el.dataset.sp || el.textContent !== text) { el.innerHTML = `<span>${text}</span>`; delete el.dataset.sp; } }
+
+// ---------------- timeline ----------------
+const T = {
+  pair: 3.0, camTap: 4.4, scan: 4.7, scanned: 6.7, homeIn: 8.7, balance: 9.1,
+  eurTap: 10.8, satTap: 12.8,
+  qrTap: 14.4, sendPush: 14.6, reading: 16.4, confirm: 17.0, payTap: 18.7, done: 20.6, fattoTap: 22.4, sendPop: 22.6,
+  recTap: 24.6, recPush: 24.8, keys: [25.9, 26.3, 26.7, 27.1], createTap: 27.9, qrShow: 28.5, paid: 31.6, recFatto: 33.2, recPop: 33.4,
+  bg: 34.7, lockIn: 35.1, faceOk: 36.7, unlock: 37.4, outro: 39.4, end: 43.5,
+};
+const PUSH = 0.38;
+const PHRASE = 'frost minute ocean velvet ladder humble cabin ripple orbit lantern';
+const PRICE = 95000; // €/BTC, solo per la demo
+
+const taps = [
+  [T.camTap, 'pair-cam'], [T.eurTap, 'home-amount'], [T.satTap, 'home-amount'], [T.qrTap, 'home-scan'],
+  [T.payTap, 'pay-btn'], [T.fattoTap, 'send-fatto'], [T.recTap, 'home-receive'],
+  [T.keys[0], 'k5'], [T.keys[1], 'k0'], [T.keys[2], 'k0'], [T.keys[3], 'k0'],
+  [T.createTap, 'rec-create'], [T.recFatto, 'rec-fatto'],
+];
+
+function rectOf(id) {
+  const r = $(id).getBoundingClientRect(), s = $('screen').getBoundingClientRect(), k = s.width / 390;
+  return {x: (r.left + r.width / 2 - s.left) / k, y: (r.top + r.height / 2 - s.top) / k};
+}
+
+function render(t) {
+  // ---- livelli principali ----
+  op('launch', 1 - prog(t, 2.5, 2.9));
+  show('launch', t < 2.9);
+  const pairVis = t >= 2.5 && t < T.homeIn + 0.3;
+  show('pair', pairVis);
+  op('pair', Math.min(prog(t, 2.5, 2.9), 1 - prog(t, T.homeIn, T.homeIn + 0.3)));
+
+  // pair: form / scanner
+  const inScan = t >= T.scan && t < T.scanned;
+  op('pair-form', inScan ? 0 : (t >= T.scanned ? prog(t, T.scanned, T.scanned + 0.15) : 1));
+  op('pair-scan', inScan ? prog(t, T.scan, T.scan + 0.15) : 0);
+  const filled = t >= T.scanned;
+  $('phrase').innerHTML = filled ? PHRASE : '<span class="muted">dieci parole separate da spazi</span>';
+  $('words').textContent = (filled ? 10 : 0) + '/10 parole';
+  op('pair-busy', filled ? 1 : 0);
+  $('pair-btn').classList.toggle('disabled', true);
+  if (filled) spinner($('pair-btn'), t, '#000'); else label($('pair-btn'), 'Collega nodo');
+  // QR che entra nel mirino
+  {
+    const p = inOut(prog(t, T.scan + 0.2, T.scanned - 0.5));
+    const wob = Math.sin(t * 3.1) * 3 * (1 - p * 0.6);
+    $('card1').style.transform = `translate(${90 * (1 - p) + wob}px, ${170 * (1 - p) + wob}px) rotate(${12 * (1 - p)}deg) scale(${0.75 + 0.25 * p})`;
+  }
+
+  // ---- home ----
+  show('home', t >= T.homeIn);
+  op('home', prog(t, T.homeIn, T.homeIn + 0.3));
+  // saldo e unità
+  let sat = 1234567;
+  if (t >= T.done) sat -= 21006;
+  if (t >= T.paid) sat += 5000;
+  const online = !(t >= T.lockIn && t < T.unlock + 0.6) || t >= T.unlock + 0.6;
+  const linking = t >= T.lockIn && t < T.faceOk;
+  $('home-dot').style.background = linking ? '#F7931A' : '#30D158';
+  $('home-status').textContent = linking ? 'Collegamento al nodo…' : 'Nodo collegato';
+  // cambio unità: fade 1 visibile, 0 uscita (su), 2 ingresso (giù)
+  function unitPhase(tap) { // restituisce [fade, cambiata]
+    if (t < tap) return [1, false];
+    const a = t - tap;
+    if (a < 0.14) return [1 - inQuad(a / 0.14), false];
+    if (a < 0.40) return [2 - outCubic((a - 0.14) / 0.26), true];
+    return [1, true];
+  }
+  let unit = 'sat', fade = 1;
+  const [f1, c1] = unitPhase(T.eurTap), [f2, c2] = unitPhase(T.satTap);
+  if (t < T.satTap) { fade = f1; unit = c1 ? 'eur' : 'sat'; } else { fade = f2; unit = c2 ? 'sat' : 'eur'; }
+  const o = fade <= 1 ? fade : 2 - fade;
+  const ty = fade <= 1 ? -14 * (1 - fade) : 14 * (fade - 1);
+  const sc = 0.94 + 0.06 * o;
+  $('amount-wrap').style.opacity = o;
+  $('amount-wrap').style.transform = `translateY(${ty}px) scale(${sc})`;
+  const eur = (sat / 1e8) * PRICE;
+  $('home-amount').textContent = t < T.balance ? '—' : unit === 'eur'
+    ? (n => { const [i, d] = n.toFixed(2).split('.'); return fmt(+i) + ',' + d; })(eur) : fmt(sat);
+  $('home-unit').textContent = unit === 'eur' ? '€' : 'sat';
+
+  // ---- navigazione push/pop ----
+  function nav(push, pop) {
+    if (t < push) return 1;
+    if (t < push + PUSH) return 1 - outCubic(prog(t, push, push + PUSH));
+    if (t < pop) return 0;
+    return outCubic(prog(t, pop, pop + PUSH));
+  }
+  const ns = nav(T.sendPush, T.sendPop), nr = nav(T.recPush, T.recPop);
+  const top = Math.min(ns, nr); // 0 = schermata sopra la home
+  $('send').style.transform = `translateX(${390 * ns}px)`;
+  $('receive').style.transform = `translateX(${390 * nr}px)`;
+  show('send', ns < 1); show('receive', nr < 1);
+  $('home').style.transform = `translateX(${-117 * (1 - top)}px)`;
+  $('home').style.filter = `brightness(${1 - 0.3 * (1 - top)})`;
+
+  // ---- invia ----
+  const sScan = t < T.confirm, sDone = t >= T.done;
+  op('send-scan', sScan ? 1 : 0);
+  op('send-confirm', !sScan && !sDone ? prog(t, T.confirm, T.confirm + 0.15) : 0);
+  op('send-done', sDone ? prog(t, T.done, T.done + 0.15) : 0);
+  $('send-hint').textContent = t >= T.reading ? 'Lettura in corso…' : 'Inquadra il QR di una fattura o di un indirizzo';
+  {
+    const p = inOut(prog(t, T.sendPush + 0.3, T.reading - 0.2));
+    const wob = Math.sin(t * 2.7) * 3 * (1 - p * 0.6);
+    $('card2').style.transform = `translate(${-80 * (1 - p) + wob}px, ${190 * (1 - p) + wob}px) rotate(${-10 * (1 - p)}deg) scale(${0.72 + 0.28 * p})`;
+  }
+  const paying = t >= T.payTap + 0.1;
+  op('send-desc', paying ? 0 : 1);
+  op('send-msg', paying ? 1 : 0);
+  op('toggle', paying ? 0 : 1);
+  if (paying) spinner($('pay-btn'), t, '#000'); else label($('pay-btn'), 'Paga');
+
+  // ---- ricevi ----
+  const rQr = t >= T.qrShow, rPaid = t >= T.paid;
+  op('rec-amount', !rQr ? 1 : 0);
+  op('rec-qr', rQr && !rPaid ? prog(t, T.qrShow, T.qrShow + 0.15) : 0);
+  op('rec-paid', rPaid ? prog(t, T.paid, T.paid + 0.2) : 0);
+  const typed = T.keys.filter(k => t >= k + 0.05).length;
+  const digits = ['', '5', '50', '500', '5000'][typed];
+  $('rec-digits').innerHTML = digits ? fmt(+digits) : '<span class="muted">0</span>';
+  $('caret').style.opacity = (Math.floor(t * 2) % 2 === 0 && !rQr) ? 1 : 0;
+  // con il caret prima del placeholder come in iOS
+  if (!digits) $('rec-digits').parentNode.insertBefore($('caret'), $('rec-digits'));
+  else $('rec-digits').parentNode.appendChild($('caret'));
+  $('rec-create').classList.toggle('disabled', !digits);
+  if (t >= T.createTap + 0.1 && !rQr) spinner($('rec-create'), t, '#000'); else label($('rec-create'), 'Crea richiesta');
+  // tastiera: visibile finché non compare il QR
+  const kbIn = outCubic(prog(t, T.recPush + 0.1, T.recPush + 0.45));
+  const kbOut = outCubic(prog(t, T.qrShow - 0.1, T.qrShow + 0.25));
+  const kb = kbIn * (1 - kbOut);
+  $('keyboard').style.transform = `translateY(${291 * (1 - kb)}px)`;
+  $('rec-safe').style.bottom = (34 + (291 - 34) * kb) + 'px';
+  for (const k of ['k5', 'k0']) $(k).classList.remove('pressed');
+  T.keys.forEach((k, i) => { if (t >= k && t < k + 0.12) $(i === 0 ? 'k5' : 'k0').classList.add('pressed'); });
+
+  // ---- sfondo + blocco ----
+  const bgP = prog(t, T.bg, T.bg + 0.35);
+  const back = prog(t, T.lockIn, T.lockIn + 0.35);
+  const appScale = t < T.lockIn ? 1 - 0.12 * inOut(bgP) : 0.88 + 0.12 * outCubic(back);
+  const appOp = t < T.lockIn ? 1 - bgP : 1;
+  for (const id of ['home']) {
+    if (t >= T.bg) { $(id).style.transform = `scale(${appScale})`; $(id).style.opacity = appOp; $(id).style.borderRadius = '50px'; }
+  }
+  const lockV = t >= T.lockIn && t < T.unlock + 0.3;
+  show('lock', lockV);
+  $('lock').style.transform = `scale(${0.88 + 0.12 * outCubic(back)})`;
+  op('lock', Math.min(back, 1 - prog(t, T.unlock, T.unlock + 0.3)));
+  op('lock-btn', 0);
+  const fv = window_(t, T.lockIn + 0.3, T.faceOk + 0.5, 0.2);
+  op('faceid', fv); show('faceid', fv > 0);
+  $('faceid').style.transform = `scale(${0.9 + 0.1 * fv})`;
+  show('face-glyph', t < T.faceOk); show('face-ok', t >= T.faceOk);
+  $('face-glyph').style.transform = `translateX(${Math.sin((t - T.lockIn) * 9) * 4 * (t < T.faceOk ? 1 : 0)}px)`;
+
+  // ---- dito ----
+  let fv2 = 0, fx = 0, fy = 0, ring = -1;
+  for (const [tt, id] of taps) {
+    const a = t - tt;
+    if (a > -0.35 && a < 0.4) {
+      const r = rectOf(id); fx = r.x; fy = r.y;
+      fv2 = a < 0 ? prog(a, -0.35, -0.15) : 1 - prog(a, 0.15, 0.4);
+      if (a >= 0) ring = a;
+    }
+  }
+  $('finger').style.cssText += `;left:${fx}px;top:${fy}px;opacity:${fv2};transform:scale(${ring >= 0 && ring < 0.12 ? 0.85 : 1})`;
+  const rp = ring >= 0 ? prog(ring, 0, 0.4) : 1;
+  $('ring').style.cssText += `;left:${fx}px;top:${fy}px;opacity:${ring >= 0 ? 1 - rp : 0};transform:scale(${1 + rp * 1.2})`;
+
+  // ---- didascalie ----
+  const caps = [['c0', 0, T.pair], ['c1', T.pair, T.homeIn], ['c2', T.homeIn, T.qrTap], ['c3', T.qrTap, T.done],
+    ['c3b', T.done, T.recTap], ['c4', T.recTap, T.paid], ['c4b', T.paid, T.bg], ['c5', T.bg, T.outro], ['c6', T.outro, 99]];
+  for (const [id, a, b] of caps) {
+    const vIn = a === 0 ? prog(t, 0.2, 0.8) : prog(t, a + 0.15, a + 0.55);
+    const vOut = 1 - prog(t, b - 0.05, b + 0.15);
+    const v = Math.min(vIn, vOut);
+    $(id).style.opacity = v;
+    $(id).style.transform = `translateY(calc(-50% + ${(1 - outCubic(vIn)) * 18}px))`;
+    show(id, v > 0);
+  }
+  const steps = [[T.pair, T.homeIn], [T.homeIn, T.qrTap], [T.qrTap, T.recTap], [T.recTap, T.bg], [T.bg, T.outro]];
+  [...document.querySelectorAll('#dots span')].forEach((s, i) => s.style.width = (prog(t, ...steps[i]) * 100) + '%');
+  op('dots', Math.min(prog(t, T.pair, T.pair + 0.4), 1 - prog(t, T.outro, T.outro + 0.4)));
+  // dissolvenza finale
+  $('stage').style.opacity = 1 - prog(t, T.end - 0.6, T.end);
+}
+window.render = render;
+window.DURATION = T.end;
+render(0);
+</script>
+</body>
+</html>
