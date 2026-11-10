@@ -61,7 +61,8 @@ npm install
 cd ios && pod install && cd ..
 ```
 
-Then open `ios/TelecomandoLnc.xcworkspace` in Xcode and run it on your iPhone.
+Then open `ios/TelecomandoLnc.xcworkspace` in Xcode. Under *Signing & Capabilities*, pick
+your own team and change the bundle identifier, then run it on your iPhone.
 
 **Android** (JDK 17 and the Android SDK):
 
