@@ -76,3 +76,5 @@ npx react-native run-android
 ```
 
 Built with React Native on [`@lightninglabs/lnc-rn`](https://github.com/lightninglabs/lnc-rn).
+
+[MIT License](LICENSE).
