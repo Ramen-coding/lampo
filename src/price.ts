@@ -15,6 +15,7 @@ export type Unit = 'sat' | 'eur';
 export type Price = {eur: number; at: number};
 
 let memo: Price | null = null;
+let inFlight: Promise<Price | null> | null = null;
 
 export async function readCachedPrice(): Promise<Price | null> {
   if (memo) return memo;
@@ -27,8 +28,15 @@ export async function readCachedPrice(): Promise<Price | null> {
   return memo;
 }
 
-/** Prezzo aggiornato, oppure l'ultimo salvato se la rete non risponde. */
-export async function fetchPrice(): Promise<Price | null> {
+/** Prezzo aggiornato, oppure l'ultimo salvato se la rete non risponde. Una sola richiesta alla volta. */
+export function fetchPrice(): Promise<Price | null> {
+  inFlight ??= load().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function load(): Promise<Price | null> {
   const cached = await readCachedPrice();
   if (cached && Date.now() - cached.at < FRESH_MS) return cached;
   const controller = new AbortController();

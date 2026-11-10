@@ -78,6 +78,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "io.github.ramencoding.lampo"
+    buildFeatures { buildConfig true }
     defaultConfig {
         applicationId "io.github.ramencoding.lampo"
         minSdkVersion rootProject.ext.minSdkVersion

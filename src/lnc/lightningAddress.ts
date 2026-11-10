@@ -84,9 +84,7 @@ export function classifyInput(raw: string): PaymentInput {
     return url ? {kind: 'lnurl', url} : {kind: 'unknown'};
   }
   if (/^lnurlp:\/\//i.test(text)) {
-    const host = text.slice('lnurlp://'.length);
-    const scheme = /\.onion(\/|$)/i.test(host) ? 'http' : 'https';
-    return {kind: 'lnurl', url: `${scheme}://${host}`};
+    return {kind: 'lnurl', url: `https://${text.slice('lnurlp://'.length)}`};
   }
 
   if (ADDRESS_RE.test(text)) return {kind: 'address', address: text.toLowerCase()};
@@ -101,6 +99,9 @@ export type PayRequest = {
   maxSat: number;
   description: string;
 };
+
+/** Solo https: su http chiunque in rete potrebbe sostituire la fattura. */
+const isHttps = (url: unknown): url is string => typeof url === 'string' && /^https:\/\//i.test(url);
 
 async function getJson(url: string): Promise<any> {
   const controller = new AbortController();
@@ -152,9 +153,7 @@ export async function resolveLnurl(url: string): Promise<PayRequest> {
     await new Promise<void>(r => setTimeout(r, 600));
     return {address: host, callback: 'demo', minSat: 1, maxSat: 1_000_000, description: ''};
   }
-  if (!/^https:\/\//i.test(url) && !/^http:\/\/[^/]+\.onion(\/|$)/i.test(url)) {
-    throw new Error('Link LNURL non sicuro (serve https).');
-  }
+  if (!isHttps(url)) throw new Error('Link LNURL non sicuro (serve https).');
   return resolvePayUrl(url, host);
 }
 
@@ -163,14 +162,17 @@ async function resolvePayUrl(url: string, label: string): Promise<PayRequest> {
   if (json.tag === 'withdrawRequest') {
     throw new Error('Questo QR serve a prelevare, non a pagare: non ancora supportato.');
   }
-  if (json.tag !== 'payRequest' || !json.callback) {
+  const minSat = Math.max(1, Math.ceil(Number(json.minSendable) / 1000));
+  const maxSat = Math.floor(Number(json.maxSendable) / 1000);
+  // La callback è l'indirizzo a cui si chiede la fattura: deve essere https come il resto.
+  if (json.tag !== 'payRequest' || !isHttps(json.callback) || !(maxSat >= minSat)) {
     throw new Error('Questo destinatario non accetta pagamenti Lightning.');
   }
   return {
     address: label,
     callback: json.callback,
-    minSat: Math.ceil(Number(json.minSendable) / 1000),
-    maxSat: Math.floor(Number(json.maxSendable) / 1000),
+    minSat,
+    maxSat,
     description: descriptionFromMetadata(json.metadata ?? ''),
   };
 }

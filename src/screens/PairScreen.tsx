@@ -100,6 +100,9 @@ export function PairScreen({onPair, onDemo}: Props) {
         autoCapitalize="none"
         autoCorrect={false}
         spellCheck={false}
+        autoComplete="off"
+        importantForAutofill="no"
+        textContentType="none"
         multiline
         editable={!busy}
       />

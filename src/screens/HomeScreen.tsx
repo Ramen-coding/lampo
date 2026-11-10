@@ -46,13 +46,10 @@ export function HomeScreen(p: Props) {
   const [unit, setUnit] = useState<Unit>('sat');
   const [price, setPrice] = useState<Price | null>(null);
 
-  // Riapre con l'ultima unità scelta; in euro aggiorna subito il cambio.
+  // Riapre con l'ultima unità scelta e l'ultimo cambio salvato.
   useEffect(() => {
-    readUnit().then(u => {
-      setUnit(u);
-      readCachedPrice().then(setPrice);
-      if (u === 'eur') fetchPrice().then(setPrice);
-    });
+    readUnit().then(setUnit);
+    readCachedPrice().then(setPrice);
   }, []);
 
   // Il saldo cambia (pagamento, ricezione, rientro nell'app): cambio aggiornato.
