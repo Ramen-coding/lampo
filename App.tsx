@@ -20,7 +20,7 @@ type Phase = 'boot' | 'pair' | 'paired';
 type Routes = {
   pair: undefined;
   home: undefined;
-  send: {scan?: boolean} | undefined;
+  send: undefined;
   receive: undefined;
 };
 
@@ -241,7 +241,6 @@ export default function App() {
                         balanceAt={balanceAt}
                         onRefresh={ensureConnected}
                         onSend={() => navigation.navigate('send')}
-                        onScan={() => navigation.navigate('send', {scan: true})}
                         onReceive={() => navigation.navigate('receive')}
                         onUnpair={unpair}
                       />
@@ -249,10 +248,9 @@ export default function App() {
                   )}
                 </Stack.Screen>
                 <Stack.Screen name="send">
-                  {({navigation, route}) => (
+                  {({navigation}) => (
                     <Safe>
                       <SendScreen
-                        startWithScan={route.params?.scan}
                         onClose={() => navigation.goBack()}
                         onPaid={refreshBalance}
                       />

@@ -19,12 +19,10 @@ type Step =
 type Props = {
   onClose: () => void;
   onPaid: () => void;
-  /** Apre direttamente la fotocamera (tasto QR della Home). */
-  startWithScan?: boolean;
 };
 
-export function SendScreen({onClose, onPaid, startWithScan}: Props) {
-  const [step, setStep] = useState<Step>(startWithScan ? {kind: 'scan'} : {kind: 'input'});
+export function SendScreen({onClose, onPaid}: Props) {
+  const [step, setStep] = useState<Step>({kind: 'input'});
   const [text, setText] = useState('');
   const [amountText, setAmountText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -180,9 +178,7 @@ export function SendScreen({onClose, onPaid, startWithScan}: Props) {
           onScanned={onScanned}
           onCancel={() => {
             handled.current = false;
-            // Aperta dal tasto QR della Home: Annulla torna alla Home, non al modulo Invia.
-            if (startWithScan) onClose();
-            else setStep({kind: 'input'});
+            setStep({kind: 'input'});
           }}
         />
       )}

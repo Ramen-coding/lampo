@@ -19,7 +19,9 @@ import {
   colors,
   type,
 } from '../components/ui';
+import { QrSheet } from '../components/QrSheet';
 import { formatSat, formatTime } from '../cache';
+import { clearQrImage, pickQrImage, readQrImage } from '../qrImage';
 import {
   Price,
   Unit,
@@ -39,7 +41,6 @@ type Props = {
   balanceAt: number | null;
   onRefresh: () => void;
   onSend: () => void;
-  onScan: () => void;
   onReceive: () => void;
   onUnpair: () => void;
 };
@@ -165,6 +166,60 @@ export function HomeScreen(p: Props) {
       ? 'Nasconde il saldo'
       : 'Mostra il saldo in sat';
 
+  // Tasto centrale: il QR personale, un'immagine scelta dalla galleria che resta salvata.
+  const [qr, setQr] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const picking = useRef(false);
+
+  useEffect(() => {
+    readQrImage().then(setQr);
+  }, []);
+
+  async function chooseQr() {
+    if (picking.current) return;
+    picking.current = true;
+    try {
+      const uri = await pickQrImage();
+      if (uri) {
+        setQr(uri);
+        setQrOpen(true);
+      }
+    } catch (e: any) {
+      Alert.alert(
+        'Immagine non caricata',
+        e?.message ?? 'Non è stato possibile aprire la galleria.',
+      );
+    } finally {
+      picking.current = false;
+    }
+  }
+
+  /** Con un QR già salvato lo mostra; la prima volta apre la galleria per aggiungerlo. */
+  async function openQr() {
+    const saved = qr ?? (await readQrImage());
+    if (saved) {
+      setQr(saved);
+      setQrOpen(true);
+    } else {
+      chooseQr();
+    }
+  }
+
+  function confirmRemoveQr() {
+    Alert.alert('Rimuovere il QR?', 'Potrai aggiungerne un altro dalla galleria.', [
+      { text: 'Annulla', style: 'cancel' },
+      {
+        text: 'Rimuovi',
+        style: 'destructive',
+        onPress: () => {
+          clearQrImage();
+          setQr(null);
+          setQrOpen(false);
+        },
+      },
+    ]);
+  }
+
   function confirmUnpair() {
     Alert.alert(
       'Scollegare il nodo?',
@@ -222,11 +277,10 @@ export function HomeScreen(p: Props) {
           onPress={p.onReceive}
           disabled={p.link !== 'online'}
         />
-        {/* Scorciatoia: fotocamera subito pronta per pagare un QR */}
+        {/* Il QR personale: non serve il nodo, quindi funziona anche offline. */}
         <IconButton
-          label="Scansiona QR"
-          onPress={p.onScan}
-          disabled={p.link !== 'online'}
+          label={qr ? 'Mostra il mio QR' : 'Aggiungi un QR dalla galleria'}
+          onPress={openQr}
         >
           <QrIcon />
         </IconButton>
@@ -236,6 +290,15 @@ export function HomeScreen(p: Props) {
           disabled={p.link !== 'online'}
         />
       </View>
+
+      {qrOpen && qr ? (
+        <QrSheet
+          uri={qr}
+          onChange={chooseQr}
+          onRemove={confirmRemoveQr}
+          onClose={() => setQrOpen(false)}
+        />
+      ) : null}
     </View>
   );
 }

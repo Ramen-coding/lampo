@@ -34,10 +34,13 @@ key, so Play Protect may warn you.
 2. Open Lampo and scan the session QR, or paste the 10-word pairing phrase.
 3. Done. From now on the app opens with Face ID, fingerprint or your phone passcode.
 
-- **Pay:** tap the QR button and scan, or paste an invoice, a Lightning Address
-  (`name@domain`) or an LNURL. For large amounts, turn on **Pagamento grosso** to give the
+- **Pay:** tap **Invia**, then scan a QR with the camera or paste an invoice, a Lightning
+  Address (`name@domain`) or an LNURL. For large amounts, turn on **Pagamento grosso** to give the
   node up to 5 minutes to find a route.
 - **Receive:** type an amount and show the QR.
+- **Your QR:** the round QR button keeps an image of your choice (for example the QR of
+  your Lightning Address). The first tap picks it from the gallery; after that it opens on
+  the lower half of the screen.
 - **Balance:** tap it to switch between sats and euros.
 
 The interface is in Italian for now.
