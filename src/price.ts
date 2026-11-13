@@ -11,7 +11,7 @@ const PRICE_URL = 'https://mempool.space/api/v1/prices';
 /** Sotto questa età il prezzo non viene richiesto di nuovo. */
 const FRESH_MS = 60_000;
 
-export type Unit = 'sat' | 'eur';
+export type Unit = 'sat' | 'eur' | 'hidden';
 export type Price = {eur: number; at: number};
 
 let memo: Price | null = null;
@@ -55,16 +55,25 @@ async function load(): Promise<Price | null> {
   }
 }
 
+/**
+ * Modalità del saldo: sat → euro → nascosto → sat…
+ * All'apertura si riparte dai sat, tranne se l'app è stata lasciata in modalità
+ * nascosta: la privacy resta finché non la si toglie.
+ */
 export async function readUnit(): Promise<Unit> {
   try {
-    return (await EncryptedStorage.getItem(UNIT_KEY)) === 'eur' ? 'eur' : 'sat';
+    return (await EncryptedStorage.getItem(UNIT_KEY)) === 'hidden' ? 'hidden' : 'sat';
   } catch {
     return 'sat';
   }
 }
 
 export function writeUnit(unit: Unit) {
-  EncryptedStorage.setItem(UNIT_KEY, unit).catch(() => {});
+  EncryptedStorage.setItem(UNIT_KEY, unit === 'hidden' ? 'hidden' : 'sat').catch(() => {});
+}
+
+export function nextUnit(unit: Unit): Unit {
+  return unit === 'sat' ? 'eur' : unit === 'eur' ? 'hidden' : 'sat';
 }
 
 export function satToEur(sat: number, price: Price): number {
