@@ -30,9 +30,8 @@ export function LockScreen({prompting, kind, link, onUnlock}: Props) {
       {/* Stesso logo dell'avvio di iOS, nello stesso punto: il passaggio non si vede. */}
       <BrandMark />
       <View style={s.center}>{prompting ? null : <StatusLine state={link} />}</View>
-      <View style={[s.row, prompting && {opacity: 0}]} pointerEvents={prompting ? 'none' : 'auto'}>
-        <Button label={LABEL[kind]} variant="secondary" onPress={onUnlock} />
-      </View>
+      {/* Con il riquadro aperto resta solo lo spazio del pulsante: il vetro non si rende trasparente, si toglie. */}
+      <View style={s.row}>{prompting ? null : <Button label={LABEL[kind]} variant="secondary" onPress={onUnlock} />}</View>
     </View>
   );
 }
@@ -40,5 +39,5 @@ export function LockScreen({prompting, kind, link, onUnlock}: Props) {
 const s = StyleSheet.create({
   root: {...StyleSheet.absoluteFill, backgroundColor: colors.bg, padding: 24, paddingBottom: 56},
   center: {flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 24},
-  row: {flexDirection: 'row'},
+  row: {flexDirection: 'row', height: 58},
 });

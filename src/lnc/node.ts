@@ -45,20 +45,31 @@ async function isUp(client: LNC): Promise<boolean> {
   }
 }
 
-export async function connect(store: SecureCredentialStore): Promise<void> {
+/**
+ * Collega il nodo. Con `force` rifà il collegamento anche se risulta attivo:
+ * serve quando la connessione sembra viva ma il nodo non risponde più
+ * (per esempio dopo un cambio di rete).
+ */
+export async function connect(store: SecureCredentialStore, force = false): Promise<void> {
   if (demoMode) return demo.connect();
-  if (lnc && (await isUp(lnc))) {
+  if (!force && lnc && (await isUp(lnc))) {
     return;
   }
   // Con un credentialStore personalizzato lnc-rn ignora serverHost del config:
   // il default lo garantisce lo store stesso.
   if (lnc && lnc.credentials === store) {
-    // Connessione caduta (es. iOS l'ha chiusa in background): chiusura pulita
-    // prima di riaprirla, così il client Go non resta a metà handshake.
+    // Connessione caduta (es. iOS l'ha chiusa in background) o da rifare: chiusura
+    // pulita prima di riaprirla, così il client Go non resta a metà handshake.
+    const client = lnc;
     try {
-      lnc.disconnect();
+      client.disconnect();
     } catch {
       // già chiusa
+    }
+    // La chiusura non è immediata: senza attendere, il controllo qui sotto vedrebbe
+    // ancora "collegato" e darebbe per buona la connessione vecchia.
+    for (let i = 0; i < 10 && (await isUp(client)); i++) {
+      await new Promise<void>(r => setTimeout(r, 200));
     }
   } else {
     lnc = new LNC({credentialStore: store});

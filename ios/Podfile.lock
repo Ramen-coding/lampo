@@ -14,6 +14,29 @@ PODS:
   - hermes-engine (260318099.0.5):
     - hermes-engine/Pre-built (= 260318099.0.5)
   - hermes-engine/Pre-built (260318099.0.5)
+  - LiquidGlass (0.8.2):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-bridging
+    - React-Core
+    - React-Core-prebuilt
+    - React-cxxstableapi
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - lnc-rn (0.3.2-alpha):
     - React
   - NitroImage (0.15.2):
@@ -2070,6 +2093,7 @@ DEPENDENCIES:
   - fmt (from `build/rndeps-facades/fmt`)
   - glog (from `build/rndeps-facades/glog`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
+  - "LiquidGlass (from `../node_modules/@callstack/liquid-glass`)"
   - "lnc-rn (from `../node_modules/@lightninglabs/lnc-rn`)"
   - NitroImage (from `../node_modules/react-native-nitro-image`)
   - NitroModules (from `../node_modules/react-native-nitro-modules`)
@@ -2178,6 +2202,8 @@ EXTERNAL SOURCES:
   hermes-engine:
     :podspec: "../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec"
     :tag: hermes-v260318099.0.5
+  LiquidGlass:
+    :path: "../node_modules/@callstack/liquid-glass"
   lnc-rn:
     :path: "../node_modules/@lightninglabs/lnc-rn"
   NitroImage:
@@ -2367,6 +2393,7 @@ SPEC CHECKSUMS:
   fmt: ba0886e864ebb21d14c98b2e12e164b8002f5b93
   glog: 3cf7cb46f743c4bc758ae3e6d9c15bd1b4cfd6d4
   hermes-engine: 79484fc4e58f328d01b9339ef899ca633d3702ee
+  LiquidGlass: 90d4f92e7a6c8577f38515c30a3fe36d3c157760
   lnc-rn: ab9a507e59375efcec368c8bdb6f27dcc89977f9
   NitroImage: eb713c7afe8fe1f6122d26e28d5c35f2b6495b82
   NitroModules: f1a11047ebbb0202a7d0033d6e99ad0527d34b00

@@ -1,7 +1,7 @@
 import React, {useRef, useState} from 'react';
 import {KeyboardAvoidingView, StyleSheet, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
-import {Button, CameraIcon, ChipButton, PasteIcon, TextLink, colors, type} from '../components/ui';
+import {Button, CameraIcon, ChipButton, PasteIcon, TextLink, colors, field, type} from '../components/ui';
 import {Scanner} from '../components/Scanner';
 import {PHRASE_WORDS, parsePairing, phraseWords} from '../lnc/pairing';
 
@@ -83,9 +83,9 @@ export function PairScreen({onPair, onDemo}: Props) {
 
   return (
     <KeyboardAvoidingView style={s.root} behavior="padding">
-      <View style={{gap: 10}}>
+      <View style={s.intro}>
         <Text style={[type.title, {color: colors.text}]}>Collega il tuo nodo</Text>
-        <Text style={[type.body, {color: colors.muted, lineHeight: 24}]}>
+        <Text style={[type.body, s.lead]}>
           In Lightning Terminal crea una sessione Lightning Node Connect, poi inquadra il QR o
           incolla la frase di abbinamento.
         </Text>
@@ -103,6 +103,7 @@ export function PairScreen({onPair, onDemo}: Props) {
         autoComplete="off"
         importantForAutofill="no"
         textContentType="none"
+        keyboardAppearance="dark"
         multiline
         editable={!busy}
       />
@@ -125,13 +126,14 @@ export function PairScreen({onPair, onDemo}: Props) {
 
       {showServer ? (
         <TextInput
-          style={[s.input, {minHeight: 52}]}
+          style={[s.input, s.server]}
           value={server}
           onChangeText={setServer}
           placeholder="mailbox.tuodominio.it:443"
           placeholderTextColor={colors.muted}
           autoCapitalize="none"
           autoCorrect={false}
+          keyboardAppearance="dark"
           editable={!busy}
         />
       ) : (
@@ -145,9 +147,9 @@ export function PairScreen({onPair, onDemo}: Props) {
         </Text>
       ) : null}
 
-      <View style={{gap: 20, marginTop: 'auto', alignItems: 'center'}}>
+      <View style={s.bottom}>
         {__DEV__ ? <TextLink label="Prova la demo (nodo fittizio)" onPress={onDemo} /> : null}
-        <View style={{flexDirection: 'row'}}>
+        <View style={s.row}>
           <Button label="Collega nodo" onPress={submit} disabled={words !== PHRASE_WORDS} loading={busy} />
         </View>
       </View>
@@ -157,16 +159,11 @@ export function PairScreen({onPair, onDemo}: Props) {
 
 const s = StyleSheet.create({
   root: {flex: 1, padding: 24, gap: 16},
+  intro: {gap: 10},
+  lead: {color: colors.muted, lineHeight: 24},
+  server: {minHeight: 52},
   chips: {flexDirection: 'row', gap: 20, justifyContent: 'center'},
-  input: {
-    minHeight: 110,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    color: colors.text,
-    fontSize: 17,
-    padding: 16,
-    textAlignVertical: 'top',
-  },
+  bottom: {gap: 20, marginTop: 'auto', alignItems: 'center'},
+  row: {flexDirection: 'row', alignSelf: 'stretch'},
+  input: {...field, minHeight: 110, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top'},
 });
