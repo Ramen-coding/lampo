@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import {RefreshControl} from 'react-native';
+import {RefreshControl, Text} from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import {HomeScreen} from '../src/screens/HomeScreen';
 
@@ -99,5 +99,29 @@ test('senza nodo Ricevi e Invia sono spenti, il QR no', async () => {
   expect(button(/^Ricevi$/).props.disabled).toBe(true);
   expect(button(/^Invia$/).props.disabled).toBe(true);
   expect(button(/QR/).props.disabled).toBeFalsy();
+  await ReactTestRenderer.act(async () => tree.unmount());
+});
+
+test('toccando la bolla del saldo: sat, poi euro, poi nascosto senza unità', async () => {
+  const onRefresh = jest.fn();
+  const tree = await renderHome({onRefresh, balanceSat: 1234567});
+  const bubble = () => tree.root.find(n => typeof n.props.onPress === 'function' && /^Saldo/.test(n.props.accessibilityLabel ?? ''));
+  const texts = () =>
+    bubble()
+      .findAllByType(Text)
+      .map(t => t.props.children);
+
+  expect(bubble().props.accessibilityLabel).toBe('Saldo in sat');
+  expect(texts()).toEqual(['1.234.567', 'sat']);
+
+  await ReactTestRenderer.act(async () => bubble().props.onPress());
+  expect(bubble().props.accessibilityLabel).toBe('Saldo in euro');
+  // Ogni tocco coglie l'occasione per controllare il collegamento al nodo.
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+
+  await ReactTestRenderer.act(async () => bubble().props.onPress());
+  expect(bubble().props.accessibilityLabel).toBe('Saldo nascosto');
+  // Nascosto: solo gli asterischi, la bolla si accorcia.
+  expect(texts()).toEqual(['******']);
   await ReactTestRenderer.act(async () => tree.unmount());
 });

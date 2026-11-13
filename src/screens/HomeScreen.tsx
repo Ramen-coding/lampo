@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Animated,
-  Easing,
+  LayoutAnimation,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -49,26 +49,27 @@ type Props = {
   onUnpair: () => void;
 };
 
+/** Durate brevi: l'app deve sembrare immediata. */
+const MORPH_MS = 160; // la bolla del saldo cambia forma e la cifra nuova compare
+const COUNT_MS = 320; // la cifra scorre al nuovo saldo
+const REFRESH_MIN_MS = 350; // tempo minimo della rotellina
+
+/** La bolla del saldo: distanza dai bordi dello schermo e margine interno. */
+const BUBBLE_MARGIN = 16;
+const BUBBLE_PADDING = 26;
+
 /** Saldo nascosto: sempre la stessa lunghezza, così non lascia intuire la cifra. */
 const HIDDEN = '******';
-
-/** Un "livello" del saldo: durante il cambio il vecchio sfuma mentre il nuovo entra. */
-type Layer = { id: number; unit: Unit; leaving: boolean };
 
 export function HomeScreen(p: Props) {
   // null finché non si sa la modalità salvata: niente cifra mostrata per errore
   // se l'utente aveva lasciato il saldo nascosto.
   const [unit, setUnit] = useState<Unit | null>(null);
-  const [layers, setLayers] = useState<Layer[]>([]);
-  const nextId = useRef(1);
   const [price, setPrice] = useState<Price | null>(null);
 
   // All'apertura: sat, oppure nascosto se l'app era stata chiusa così.
   useEffect(() => {
-    readUnit().then(u => {
-      setUnit(u);
-      setLayers([{ id: 0, unit: u, leaving: false }]);
-    });
+    readUnit().then(setUnit);
     readCachedPrice().then(setPrice);
   }, []);
 
@@ -81,99 +82,60 @@ export function HomeScreen(p: Props) {
     }
   }, [unit, p.balanceSat]);
 
+  // La cifra nuova compare con una dissolvenza breve dentro la bolla.
+  const fade = useRef(new Animated.Value(1)).current;
+
   function cycleUnit() {
     if (unit === null) return;
     const next = nextUnit(unit);
+    // La bolla si allarga o si stringe attorno alla nuova cifra.
+    LayoutAnimation.configureNext({
+      duration: MORPH_MS,
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+    });
     setUnit(next);
     writeUnit(next);
     if (next === 'eur') fetchPrice().then(setPrice);
     p.onRefresh();
-    const id = nextId.current++;
-    setLayers(ls => [
-      ...ls.map(l => ({ ...l, leaving: true })),
-      { id, unit: next, leaving: false },
-    ]);
+    fade.setValue(0);
+    Animated.timing(fade, {
+      toValue: 1,
+      duration: MORPH_MS,
+      useNativeDriver: true,
+    }).start();
   }
 
-  function removeLayer(id: number) {
-    setLayers(ls => ls.filter(l => l.id !== id));
-  }
-
-  // Font il più grande possibile perché "1.000.000" stia in una riga.
+  // Font il più grande possibile perché "1.000.000" stia in una riga dentro la bolla.
   const { width } = useWindowDimensions();
-  const balanceSize = Math.min(88, Math.floor((width - 48) / 5));
+  const amountWidth = width - 2 * (BUBBLE_MARGIN + BUBBLE_PADDING);
+  const balanceSize = Math.min(80, Math.floor(amountWidth / 5));
 
   // Quando il saldo cambia (un pagamento arrivato o partito) la cifra scorre fino al nuovo valore.
   const shownSat = useCountUp(p.balanceSat);
 
+  const isEur = unit === 'eur';
   const priceIsOld = price !== null && Date.now() - price.at > 10 * 60_000;
-
-  function renderAmount(u: Unit) {
-    const isEur = u === 'eur';
-    const amount =
-      u === 'hidden'
-        ? HIDDEN
-        : shownSat === null
-        ? '—'
-        : isEur
-        ? price
-          ? formatEur(satToEur(shownSat, price))
-          : '—'
-        : formatSat(shownSat);
-    return (
-      <Text
-        style={[
-          type.balance,
-          {
-            fontSize: balanceSize,
-            lineHeight: Math.round(balanceSize * 1.2),
-            letterSpacing: -balanceSize * 0.03,
-            color:
-              p.balanceIsCached || (isEur && priceIsOld)
-                ? colors.muted
-                : colors.text,
-          },
-          // L'asterisco sta in alto sulla riga: lo si porta al centro delle cifre.
-          u === 'hidden' && {
-            transform: [{ translateY: balanceSize * 0.2 }],
-          },
-        ]}
-        adjustsFontSizeToFit
-        numberOfLines={1}
-      >
-        {amount}
-      </Text>
-    );
-  }
-
-  // Nella pillola sotto la cifra: unità e, se serve, lo stato del cambio.
-  const unitLabel =
-    unit === null
-      ? ' '
-      : unit === 'sat'
+  const amount =
+    unit === 'hidden'
+      ? HIDDEN
+      : shownSat === null
+      ? '—'
+      : isEur
+      ? price
+        ? formatEur(satToEur(shownSat, price))
+        : '—'
+      : formatSat(shownSat);
+  // Sotto la cifra: unità e, se serve, lo stato del cambio. Nascosto: niente, la bolla si accorcia.
+  const caption =
+    unit === 'sat'
       ? 'sat'
       : unit === 'hidden'
-      ? 'nascosto'
+      ? null
       : !price
       ? '€ · cambio non disponibile'
       : priceIsOld
       ? `€ · cambio delle ${formatTime(price.at)}`
       : '€';
-
-  // Il saldo "cede" sotto il dito, come una goccia.
-  const press = useRef(new Animated.Value(0)).current;
-  const pressTo = (toValue: number) =>
-    Animated.spring(press, {
-      toValue,
-      damping: 14,
-      stiffness: 260,
-      mass: 0.6,
-      useNativeDriver: true,
-    }).start();
-  const pressScale = press.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 0.96],
-  });
 
   // Trascinando giù si aggiorna il saldo: la rotellina resta almeno un attimo,
   // così si capisce che l'aggiornamento è partito anche quando il nodo risponde subito.
@@ -186,7 +148,7 @@ export function HomeScreen(p: Props) {
     try {
       await Promise.all([
         p.onPullRefresh(),
-        new Promise<void>(r => setTimeout(r, 600)),
+        new Promise<void>(r => setTimeout(r, REFRESH_MIN_MS)),
       ]);
     } finally {
       pulling.current = false;
@@ -298,41 +260,51 @@ export function HomeScreen(p: Props) {
 
         {/* Il saldo è l'unico elemento "forte" della schermata. */}
         <View style={s.center}>
-          {/* Cifra e pillola dell'unità sono toccabili: sat → euro → nascosto → sat… */}
-          <Pressable
-            onPress={cycleUnit}
-            onPressIn={() => pressTo(1)}
-            onPressOut={() => pressTo(0)}
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel}
-            accessibilityHint={accessibilityHint}
-            hitSlop={12}
-            style={s.balance}
-          >
-            <Animated.View
-              style={[s.drop, { transform: [{ scale: pressScale }] }]}
+          {/* Tutto il saldo sta in una bolla di vetro: toccandola sat → euro → nascosto → sat… */}
+          {unit === null ? null : (
+            <Pressable
+              onPress={cycleUnit}
+              accessibilityRole="button"
+              accessibilityLabel={accessibilityLabel}
+              accessibilityHint={accessibilityHint}
+              hitSlop={12}
+              style={({ pressed }) => [s.balance, pressed && s.pressed]}
             >
-              {/* Altezza data dal livello entrante; quello uscente gli si sovrappone. */}
-              <View style={s.amount}>
-                {layers.map(l => (
-                  <FadeLayer
-                    key={l.id}
-                    animateIn={l.id !== 0}
-                    leaving={l.leaving}
-                    onGone={() => removeLayer(l.id)}
+              <Glass interactive style={s.bubble}>
+                {/* La dissolvenza è sul contenuto, mai sul vetro (vedi Glass). */}
+                <Animated.View style={[s.amount, { opacity: fade }]}>
+                  <Text
+                    style={[
+                      type.balance,
+                      {
+                        maxWidth: amountWidth,
+                        fontSize: balanceSize,
+                        lineHeight: Math.round(balanceSize * 1.15),
+                        letterSpacing: -balanceSize * 0.03,
+                        color:
+                          p.balanceIsCached || (isEur && priceIsOld)
+                            ? colors.muted
+                            : colors.text,
+                      },
+                      // L'asterisco sta in alto sulla riga: lo si porta al centro della bolla.
+                      unit === 'hidden' && {
+                        transform: [{ translateY: balanceSize * 0.2 }],
+                      },
+                    ]}
+                    adjustsFontSizeToFit
+                    numberOfLines={1}
                   >
-                    {renderAmount(l.unit)}
-                  </FadeLayer>
-                ))}
-              </View>
-              {/* Fuori dai livelli che sfumano: il vetro non sopporta l'opacità animata. */}
-              <Glass style={s.unit}>
-                <Text style={s.unitText} numberOfLines={1}>
-                  {unitLabel}
-                </Text>
+                    {amount}
+                  </Text>
+                  {caption ? (
+                    <Text style={s.caption} numberOfLines={1}>
+                      {caption}
+                    </Text>
+                  ) : null}
+                </Animated.View>
               </Glass>
-            </Animated.View>
-          </Pressable>
+            </Pressable>
+          )}
           {/* Spazio fisso: la nota compare senza spostare il saldo. */}
           <View style={s.note}>
             {p.balanceIsCached && p.balanceAt ? (
@@ -419,7 +391,7 @@ function BarButton({
 }
 
 /**
- * Fa scorrere un numero dal valore precedente a quello nuovo (circa un secondo,
+ * Fa scorrere un numero dal valore precedente a quello nuovo (un terzo di secondo,
  * rallentando alla fine). La prima cifra mostrata compare subito, senza scorrere.
  */
 function useCountUp(target: number | null): number | null {
@@ -436,7 +408,7 @@ function useCountUp(target: number | null): number | null {
     const start = Date.now();
     let frame = 0;
     const step = () => {
-      const k = Math.min(1, (Date.now() - start) / 900);
+      const k = Math.min(1, (Date.now() - start) / COUNT_MS);
       const value = Math.round(from + (target - from) * (1 - (1 - k) ** 3));
       current.current = value;
       setShown(value);
@@ -453,24 +425,30 @@ const s = StyleSheet.create({
   root: { flex: 1 },
   scroll: { flex: 1 },
   // flexGrow: il contenuto riempie lo schermo (saldo al centro) e si può comunque trascinare.
-  content: { flexGrow: 1, padding: 24, paddingBottom: 8 },
+  content: {
+    flexGrow: 1,
+    paddingVertical: 24,
+    paddingHorizontal: BUBBLE_MARGIN,
+    paddingBottom: 8,
+  },
   top: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 24 - BUBBLE_MARGIN,
   },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  balance: { alignSelf: 'stretch', marginTop: 32 },
-  drop: { alignItems: 'center', gap: 10 },
-  amount: { alignSelf: 'stretch' },
-  unit: {
-    height: 32,
-    borderRadius: 16,
-    paddingHorizontal: 14,
+  balance: { marginTop: 32 },
+  bubble: {
+    borderRadius: 40,
+    paddingHorizontal: BUBBLE_PADDING,
+    paddingTop: 14,
+    paddingBottom: 16,
+    minWidth: 150,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  unitText: { fontSize: 15, fontWeight: '500', color: colors.muted },
+  amount: { alignItems: 'center' },
+  caption: { fontSize: 17, fontWeight: '500', color: colors.muted },
   note: { height: 32, justifyContent: 'flex-end' },
   // Bolla alta 72 con raggio 36; dentro, ovali alti 56 con raggio 28: curve concentriche.
   bar: {
@@ -504,78 +482,4 @@ const s = StyleSheet.create({
   },
   dimmed: { opacity: 0.4 },
   pressed: { transform: [{ scale: 0.96 }] },
-  layer: { alignItems: 'center' },
 });
-
-/**
- * Dissolvenza incrociata: il nuovo valore sale da sotto mentre il vecchio,
- * sovrapposto, sfuma verso l'alto. Ingresso e uscita sono due animazioni
- * separate: un tocco a metà cambio riparte da dove si trova, senza scatti.
- */
-function FadeLayer({
-  animateIn,
-  leaving,
-  onGone,
-  children,
-}: {
-  animateIn: boolean;
-  leaving: boolean;
-  onGone: () => void;
-  children: React.ReactNode;
-}) {
-  const enter = useRef(new Animated.Value(animateIn ? 0 : 1)).current;
-  const exit = useRef(new Animated.Value(0)).current;
-  const gone = useRef(onGone);
-  gone.current = onGone;
-
-  useEffect(() => {
-    if (!animateIn) return;
-    Animated.timing(enter, {
-      toValue: 1,
-      duration: 420,
-      delay: 60,
-      easing: Easing.bezier(0.22, 1, 0.36, 1),
-      useNativeDriver: true,
-    }).start();
-  }, [animateIn, enter]);
-
-  useEffect(() => {
-    if (!leaving) return;
-    Animated.timing(exit, {
-      toValue: 1,
-      duration: 240,
-      easing: Easing.bezier(0.4, 0, 1, 1),
-      useNativeDriver: true,
-    }).start(({ finished }) => finished && gone.current());
-  }, [leaving, exit]);
-
-  const style = {
-    opacity: Animated.multiply(
-      enter,
-      exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }),
-    ),
-    transform: [
-      {
-        translateY: Animated.add(
-          enter.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }),
-          exit.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }),
-        ),
-      },
-      {
-        scale: Animated.multiply(
-          enter.interpolate({ inputRange: [0, 1], outputRange: [0.97, 1] }),
-          exit.interpolate({ inputRange: [0, 1], outputRange: [1, 0.97] }),
-        ),
-      },
-    ],
-  };
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      style={[s.layer, leaving && StyleSheet.absoluteFill, style]}
-    >
-      {children}
-    </Animated.View>
-  );
-}

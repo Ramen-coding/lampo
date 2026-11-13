@@ -9,6 +9,7 @@ import * as node from './src/lnc/node';
 import {clearCache, readCachedBalance, writeCachedBalance} from './src/cache';
 import {APP_NAME, BrandMark, LinkState, colors} from './src/components/ui';
 import {Ambient} from './src/components/Ambient';
+import {loadKeyboardHeights} from './src/components/KeyboardFrame';
 import {PairScreen} from './src/screens/PairScreen';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SendScreen} from './src/screens/SendScreen';
@@ -29,6 +30,8 @@ const Stack = createNativeStackNavigator<Routes>();
 
 /** Quanto si aspetta il saldo, trascinando giù, prima di rifare il collegamento al nodo. */
 const RELOAD_TIMEOUT_MS = 6000;
+
+const formScreen = {animation: 'fade', animationDuration: 140} as const;
 
 const navTheme = {
   ...DarkTheme,
@@ -148,6 +151,7 @@ export default function App() {
 
   // Avvio: mostra subito il saldo salvato, poi collega in background.
   useEffect(() => {
+    loadKeyboardHeights();
     (async () => {
       store.current = await SecureCredentialStore.load();
       if (!store.current.isPaired) {
@@ -285,7 +289,8 @@ export default function App() {
                     </Safe>
                   )}
                 </Stack.Screen>
-                <Stack.Screen name="send">
+                {/* Invia e Ricevi non scorrono: compaiono sul posto con una dissolvenza breve. */}
+                <Stack.Screen name="send" options={formScreen}>
                   {({navigation}) => (
                     <Safe>
                       <SendScreen
@@ -295,7 +300,7 @@ export default function App() {
                     </Safe>
                   )}
                 </Stack.Screen>
-                <Stack.Screen name="receive">
+                <Stack.Screen name="receive" options={formScreen}>
                   {({navigation}) => (
                     <Safe>
                       <ReceiveScreen onClose={() => navigation.goBack()} onReceived={refreshBalance} />
