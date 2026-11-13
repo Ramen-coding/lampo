@@ -2,7 +2,19 @@ import React, {useRef, useState} from 'react';
 import {KeyboardAvoidingView, Pressable, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {Scanner} from '../components/Scanner';
-import {AmountInput, Button, CameraIcon, ChipButton, PasteIcon, TextLink, colors, type} from '../components/ui';
+import {
+  AmountInput,
+  Button,
+  CameraIcon,
+  ChipButton,
+  PasteIcon,
+  ScreenHeader,
+  Stage,
+  SuccessBadge,
+  colors,
+  field,
+  type,
+} from '../components/ui';
 import {DecodedInvoice, PAYMENT_TIMEOUT_S, decodeInvoice, isDemo, parseAmount, payInvoice} from '../lnc/node';
 import {PayRequest, classifyInput, fetchInvoice, resolveAddress, resolveLnurl} from '../lnc/lightningAddress';
 import {formatSat} from '../cache';
@@ -137,36 +149,43 @@ export function SendScreen({onClose, onPaid}: Props) {
   return (
     // Il tastierino non deve coprire il pulsante in basso.
     <KeyboardAvoidingView style={s.root} behavior="padding">
-      <View style={s.header}>
-        <Text style={[type.title, {color: colors.text}]}>Invia</Text>
-        <TextLink label="Chiudi" onPress={onClose} />
-      </View>
+      <ScreenHeader title="Invia" onClose={onClose} />
 
       {step.kind === 'input' && (
         <View style={s.fill}>
-          <TextInput
-            style={s.input}
-            value={text}
-            onChangeText={t => {
-              setText(t);
-              setInputError('');
-            }}
-            placeholder="Fattura Lightning o indirizzo nome@dominio"
-            placeholderTextColor={colors.muted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            multiline
-            submitBehavior="blurAndSubmit"
-            returnKeyType="go"
-            onSubmitEditing={() => text.trim() && proceed(text)}
+          {/* Stesso blocco di Ricevi, alla stessa altezza: Incolla e Fotocamera restano sopra la tastiera. */}
+          <Stage
+            error={inputError}
+            main={
+              <TextInput
+                style={s.input}
+                value={text}
+                onChangeText={t => {
+                  setText(t);
+                  setInputError('');
+                }}
+                placeholder="Fattura Lightning o indirizzo nome@dominio"
+                placeholderTextColor={colors.muted}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                keyboardAppearance="dark"
+                multiline
+                // La tastiera si apre da sola, come in Ricevi.
+                autoFocus
+                submitBehavior="blurAndSubmit"
+                returnKeyType="go"
+                onSubmitEditing={() => text.trim() && proceed(text)}
+              />
+            }
+            second={
+              <View style={s.chips}>
+                <ChipButton label="Incolla" icon={<PasteIcon size={22} />} onPress={paste} />
+                <ChipButton label="Fotocamera" icon={<CameraIcon size={22} />} onPress={openScanner} />
+              </View>
+            }
           />
-          <View style={s.chips}>
-            <ChipButton label="Incolla" icon={<PasteIcon size={22} />} onPress={paste} />
-            <ChipButton label="Fotocamera" icon={<CameraIcon size={22} />} onPress={openScanner} />
-          </View>
-          {inputError ? <Text style={[type.small, {color: colors.red}]}>{inputError}</Text> : null}
-          <View style={[s.row, {marginTop: 'auto'}]}>
+          <View style={s.row}>
             <Button label="Continua" onPress={() => proceed(text)} disabled={!text.trim()} loading={busy} />
           </View>
         </View>
@@ -214,9 +233,9 @@ export function SendScreen({onClose, onPaid}: Props) {
             <Text style={[type.body, {color: colors.muted}]}>sat</Text>
             <Text style={[type.body, s.description]}>a {step.req.address}</Text>
             {step.req.description && step.req.description !== `Pagamento a ${step.req.address}` ? (
-              <Text style={[type.small, {color: colors.muted, textAlign: 'center'}]}>{step.req.description}</Text>
+              <Text style={[type.small, s.hint]}>{step.req.description}</Text>
             ) : null}
-            <Text style={[type.small, {color: colors.muted, marginTop: 8}]}>
+            <Text style={[type.small, s.hint, s.range]}>
               Da {formatSat(step.req.minSat)} a {formatSat(step.req.maxSat)} sat
             </Text>
           </View>
@@ -232,7 +251,7 @@ export function SendScreen({onClose, onPaid}: Props) {
           <View style={s.center}>
             <Text style={[type.balance, {color: colors.text}]}>{formatSat(step.amount)}</Text>
             <Text style={[type.body, {color: colors.muted}]}>sat</Text>
-            <Text style={[type.small, {color: colors.muted, marginTop: 20, textAlign: 'center'}]}>
+            <Text style={[type.small, s.hint, s.progress]}>
               {big ? 'Pagamento grosso in corso… può servire fino a 5 minuti.' : 'Pagamento in corso…'}
             </Text>
           </View>
@@ -245,10 +264,11 @@ export function SendScreen({onClose, onPaid}: Props) {
       {step.kind === 'done' && (
         <View style={s.fill}>
           <View style={s.center}>
+            <SuccessBadge />
             <Text style={[type.title, {color: colors.green}]}>Pagato</Text>
             <Text style={[type.balance, {color: colors.text}]}>{formatSat(step.amount)}</Text>
             <Text style={[type.body, {color: colors.muted}]}>sat</Text>
-            <Text style={[type.small, {color: colors.muted, marginTop: 12}]}>
+            <Text style={[type.small, s.hint, s.fee]}>
               Commissione {formatSat(step.feeSat)} sat
             </Text>
           </View>
@@ -261,7 +281,7 @@ export function SendScreen({onClose, onPaid}: Props) {
       {step.kind === 'error' && (
         <View style={s.fill}>
           <View style={s.center}>
-            <Text style={[type.body, {color: colors.red, textAlign: 'center'}]}>{step.message}</Text>
+            <Text style={[type.body, s.failure]}>{step.message}</Text>
           </View>
           <View style={s.row}>
             <Button label="Riprova" onPress={restart} />
@@ -276,7 +296,7 @@ export function SendScreen({onClose, onPaid}: Props) {
 function BigToggle({value, onChange}: {value: boolean; onChange: (v: boolean) => void}) {
   return (
     <Pressable style={s.toggle} onPress={() => onChange(!value)} accessibilityRole="switch">
-      <View style={{flex: 1, gap: 2}}>
+      <View style={s.toggleText}>
         <Text style={[type.body, {color: colors.text}]}>Pagamento grosso</Text>
         <Text style={[type.small, {color: colors.muted}]}>
           Tentativi fino a {Math.round(PAYMENT_TIMEOUT_S.big / 60)} minuti invece di {PAYMENT_TIMEOUT_S.normal} secondi
@@ -293,27 +313,22 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    backgroundColor: colors.field,
   },
-  root: {flex: 1, padding: 24, gap: 20, backgroundColor: colors.bg},
-  header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+  toggleText: {flex: 1, gap: 2},
+  root: {flex: 1, padding: 24, paddingBottom: 16, gap: 20, backgroundColor: colors.bg},
   fill: {flex: 1, gap: 16},
   center: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2},
   row: {flexDirection: 'row', gap: 12, alignSelf: 'stretch'},
   chips: {flexDirection: 'row', gap: 20, justifyContent: 'center'},
-  input: {
-    minHeight: 120,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    color: colors.text,
-    fontSize: 17,
-    padding: 16,
-    textAlignVertical: 'top',
-  },
+  input: {...field, flex: 1, paddingTop: 14, paddingBottom: 14, textAlignVertical: 'top'},
   description: {color: colors.text, marginTop: 20, textAlign: 'center'},
+  hint: {color: colors.muted, textAlign: 'center'},
+  range: {marginTop: 8},
+  progress: {marginTop: 20},
+  fee: {marginTop: 12},
+  failure: {color: colors.red, textAlign: 'center'},
 });

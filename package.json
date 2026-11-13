@@ -12,6 +12,7 @@
     "android": "react-native run-android"
   },
   "dependencies": {
+    "@callstack/liquid-glass": "^0.8.2",
     "@lightninglabs/lnc-rn": "^0.3.2-alpha",
     "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-navigation/native": "^7.5.1",

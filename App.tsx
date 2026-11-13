@@ -8,6 +8,7 @@ import {SecureCredentialStore} from './src/lnc/credentialStore';
 import * as node from './src/lnc/node';
 import {clearCache, readCachedBalance, writeCachedBalance} from './src/cache';
 import {APP_NAME, BrandMark, LinkState, colors} from './src/components/ui';
+import {Ambient} from './src/components/Ambient';
 import {PairScreen} from './src/screens/PairScreen';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SendScreen} from './src/screens/SendScreen';
@@ -26,14 +27,25 @@ type Routes = {
 
 const Stack = createNativeStackNavigator<Routes>();
 
+/** Quanto si aspetta il saldo, trascinando giù, prima di rifare il collegamento al nodo. */
+const RELOAD_TIMEOUT_MS = 6000;
+
 const navTheme = {
   ...DarkTheme,
   colors: {...DarkTheme.colors, background: colors.bg, card: colors.bg, text: colors.text, border: colors.line},
 };
 
-/** Ogni schermata rispetta notch e barra home, su sfondo nero. */
-function Safe({children}: {children: React.ReactNode}) {
-  return <SafeAreaView style={s.root}>{children}</SafeAreaView>;
+/**
+ * Ogni schermata rispetta notch e barra home, su sfondo nero.
+ * `ambient` è la luce di fondo della Home: sta dietro, a tutto schermo, anche sotto notch e barra home.
+ */
+function Safe({children, ambient}: {children: React.ReactNode; ambient?: React.ReactNode}) {
+  return (
+    <View style={s.root}>
+      {ambient}
+      <SafeAreaView style={s.safe}>{children}</SafeAreaView>
+    </View>
+  );
 }
 
 export default function App() {
@@ -62,43 +74,68 @@ export default function App() {
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const connecting = useRef<Promise<void> | null>(null);
 
-  const refreshBalance = useCallback(async () => {
+  /** Rilegge il saldo dal nodo. false se il nodo non ha risposto (resta visibile quello in cache). */
+  const refreshBalance = useCallback(async (): Promise<boolean> => {
     try {
       const sat = await node.getBalanceSat();
       setBalance(sat);
       setBalanceAt(Date.now());
       setCached(false);
       if (!node.isDemo()) writeCachedBalance(sat);
+      return true;
     } catch {
-      // il saldo in cache resta visibile
+      return false;
     }
   }, []);
 
-  const ensureConnected = useCallback((): Promise<void> => {
-    // Una sola connessione alla volta: avvio, ritorno in primo piano e tap sul saldo
-    // possono chiederla insieme.
+  const ensureConnected = useCallback(
+    (force = false): Promise<void> => {
+      // Una sola connessione alla volta: avvio, ritorno in primo piano e tap sul saldo
+      // possono chiederla insieme.
+      if (connecting.current) return connecting.current;
+      const run = (async () => {
+        if (!store.current) return;
+        if (!force && (await node.isConnected())) {
+          setLink('online');
+          refreshBalance();
+          return;
+        }
+        setLink('connecting');
+        try {
+          await node.connect(store.current, force);
+          setLink('online');
+          await refreshBalance();
+        } catch {
+          setLink('offline');
+        }
+      })();
+      connecting.current = run.finally(() => {
+        connecting.current = null;
+      });
+      return connecting.current;
+    },
+    [refreshBalance],
+  );
+
+  /**
+   * Aggiornamento chiesto trascinando giù la Home. Se il nodo risponde entro pochi
+   * secondi basta rileggere il saldo; se non è collegato o non risponde (la connessione
+   * può sembrare viva ma essere caduta) si rifà il collegamento da capo.
+   */
+  const reload = useCallback(async () => {
     if (connecting.current) return connecting.current;
-    const run = (async () => {
-      if (!store.current) return;
-      if (await node.isConnected()) {
+    if (await node.isConnected()) {
+      const answered = await Promise.race([
+        refreshBalance(),
+        new Promise<boolean>(r => setTimeout(() => r(false), RELOAD_TIMEOUT_MS)),
+      ]);
+      if (answered) {
         setLink('online');
-        refreshBalance();
         return;
       }
-      setLink('connecting');
-      try {
-        await node.connect(store.current);
-        setLink('online');
-        await refreshBalance();
-      } catch {
-        setLink('offline');
-      }
-    })();
-    connecting.current = run.finally(() => {
-      connecting.current = null;
-    });
-    return connecting.current;
-  }, [refreshBalance]);
+    }
+    await ensureConnected(true);
+  }, [ensureConnected, refreshBalance]);
 
   const unlock = useCallback(async () => {
     if (!lockedRef.current || promptingRef.current) return;
@@ -233,13 +270,14 @@ export default function App() {
               <>
                 <Stack.Screen name="home">
                   {({navigation}) => (
-                    <Safe>
+                    <Safe ambient={<Ambient state={link} />}>
                       <HomeScreen
                         link={link}
                         balanceSat={balance}
                         balanceIsCached={cached}
                         balanceAt={balanceAt}
-                        onRefresh={ensureConnected}
+                        onRefresh={() => ensureConnected()}
+                        onPullRefresh={reload}
                         onSend={() => navigation.navigate('send')}
                         onReceive={() => navigation.navigate('receive')}
                         onUnpair={unpair}
@@ -278,4 +316,5 @@ export default function App() {
 
 const s = StyleSheet.create({
   root: {flex: 1, backgroundColor: colors.bg},
+  safe: {flex: 1},
 });

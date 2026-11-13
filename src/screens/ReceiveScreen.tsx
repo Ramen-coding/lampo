@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {KeyboardAvoidingView, StyleSheet, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import QRCode from 'react-native-qrcode-svg';
-import {AmountInput, Button, TextLink, colors, type} from '../components/ui';
+import {AmountInput, Button, ScreenHeader, Stage, SuccessBadge, colors, field, type} from '../components/ui';
 import {createInvoice, parseAmount, watchInvoice} from '../lnc/node';
 import {formatSat} from '../cache';
 
@@ -52,25 +52,31 @@ export function ReceiveScreen({onClose, onReceived}: {onClose: () => void; onRec
   return (
     // Il tastierino non deve coprire il pulsante in basso.
     <KeyboardAvoidingView style={s.root} behavior="padding">
-      <View style={s.header}>
-        <Text style={[type.title, {color: colors.text}]}>Ricevi</Text>
-        <TextLink label="Chiudi" onPress={onClose} />
-      </View>
+      <ScreenHeader title="Ricevi" onClose={onClose} />
 
       {step.kind === 'amount' && (
-        <View style={s.body}>
-          <AmountInput value={amountText} onChange={setAmountText} />
-          <Text style={[type.body, {color: colors.muted}]}>sat</Text>
-          <TextInput
-            style={s.memo}
-            value={memo}
-            onChangeText={setMemo}
-            placeholder="Descrizione (facoltativa)"
-            placeholderTextColor={colors.muted}
-            maxLength={120}
+        <View style={s.fill}>
+          <Stage
+            error={error}
+            main={
+              <View style={s.amount}>
+                <AmountInput value={amountText} onChange={setAmountText} />
+                <Text style={[type.body, {color: colors.muted}]}>sat</Text>
+              </View>
+            }
+            second={
+              <TextInput
+                style={s.memo}
+                value={memo}
+                onChangeText={setMemo}
+                placeholder="Descrizione (facoltativa)"
+                placeholderTextColor={colors.muted}
+                keyboardAppearance="dark"
+                maxLength={120}
+              />
+            }
           />
-          {error ? <Text style={[type.small, {color: colors.red}]}>{error}</Text> : null}
-          <View style={[s.row, {marginTop: 'auto'}]}>
+          <View style={s.row}>
             <Button label="Crea richiesta" onPress={create} loading={busy} disabled={!amount} />
           </View>
         </View>
@@ -81,9 +87,9 @@ export function ReceiveScreen({onClose, onReceived}: {onClose: () => void; onRec
           <View style={s.qr}>
             <QRCode value={step.invoice.toUpperCase()} size={248} backgroundColor="#FFFFFF" color="#000000" />
           </View>
-          <Text style={[type.title, {color: colors.text, marginTop: 20}]}>{formatSat(step.amount)} sat</Text>
+          <Text style={[type.title, s.waitingAmount]}>{formatSat(step.amount)} sat</Text>
           <Text style={[type.small, {color: colors.muted}]}>In attesa del pagamento</Text>
-          <View style={[s.row, {marginTop: 'auto'}]}>
+          <View style={[s.row, s.bottom]}>
             <Button
               label={copied ? 'Fattura copiata' : 'Copia fattura'}
               variant="secondary"
@@ -96,6 +102,7 @@ export function ReceiveScreen({onClose, onReceived}: {onClose: () => void; onRec
       {step.kind === 'paid' && (
         <View style={s.body}>
           <View style={s.center}>
+            <SuccessBadge />
             <Text style={[type.title, {color: colors.green}]}>Ricevuti</Text>
             <Text style={[type.balance, {color: colors.text}]}>{formatSat(step.amount)}</Text>
             <Text style={[type.body, {color: colors.muted}]}>sat</Text>
@@ -110,22 +117,15 @@ export function ReceiveScreen({onClose, onReceived}: {onClose: () => void; onRec
 }
 
 const s = StyleSheet.create({
-  root: {flex: 1, padding: 24, gap: 20},
-  header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+  root: {flex: 1, padding: 24, paddingBottom: 16, gap: 20},
+  // Come in Invia: stessa distanza tra il blocco centrale e il pulsante.
+  fill: {flex: 1, gap: 16},
   body: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2},
   row: {flexDirection: 'row', alignSelf: 'stretch'},
+  bottom: {marginTop: 'auto'},
   center: {flex: 1, alignItems: 'center', justifyContent: 'center', gap: 2},
-  memo: {
-    alignSelf: 'stretch',
-    marginTop: 24,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    color: colors.text,
-    fontSize: 17,
-    paddingHorizontal: 16,
-  },
-  qr: {padding: 16, backgroundColor: '#FFFFFF', borderRadius: 20},
+  amount: {alignItems: 'center', gap: 2},
+  memo: {...field, flex: 1},
+  waitingAmount: {color: colors.text, marginTop: 20},
+  qr: {padding: 16, backgroundColor: '#FFFFFF', borderRadius: 28},
 });

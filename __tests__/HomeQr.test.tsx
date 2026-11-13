@@ -25,6 +25,15 @@ jest.mock('react-native-image-picker', () => ({
 
 const noop = () => {};
 
+// Le schermate aperte si chiudono a fine prova: le risposte in ritardo (es. il cambio
+// in euro) non trovano più niente da aggiornare a prova finita.
+const open: ReactTestRenderer.ReactTestRenderer[] = [];
+afterEach(async () => {
+  await ReactTestRenderer.act(async () => {
+    open.splice(0).forEach(t => t.unmount());
+  });
+});
+
 async function renderHome() {
   let tree!: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(async () => {
@@ -35,12 +44,14 @@ async function renderHome() {
         balanceIsCached={false}
         balanceAt={null}
         onRefresh={noop}
+        onPullRefresh={async () => {}}
         onSend={noop}
         onReceive={noop}
         onUnpair={noop}
       />,
     );
   });
+  open.push(tree);
   return tree;
 }
 

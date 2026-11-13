@@ -39,9 +39,10 @@ key, so Play Protect may warn you.
   node up to 5 minutes to find a route.
 - **Receive:** type an amount and show the QR.
 - **Your QR:** the round QR button keeps an image of your choice (for example the QR of
-  your Lightning Address). The first tap picks it from the gallery; after that it opens on
-  the lower half of the screen.
-- **Balance:** tap it to switch between sats and euros.
+  your Lightning Address). The first tap picks it from the gallery; after that it opens in
+  a bubble that grows out of the button.
+- **Balance:** tap it to switch between sats and euros. Pull the home screen down to
+  refresh it: if the node does not answer, Lampo reconnects on the spot.
 
 The interface is in Italian for now.
 
@@ -71,6 +72,9 @@ cd ios && pod install && cd ..
 
 Then open `ios/TelecomandoLnc.xcworkspace` in Xcode. Under *Signing & Capabilities*, pick
 your own team and change the bundle identifier, then run it on your iPhone.
+
+The bar, pills and buttons use the system Liquid Glass on iOS 26 or later (build with
+Xcode 26 or later). On older iPhones and on Android they are drawn as translucent surfaces.
 
 **Android** (JDK 17 and the Android SDK):
 

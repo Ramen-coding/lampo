@@ -43,15 +43,15 @@ export function Scanner({
             <View style={s.viewfinder} pointerEvents="none" />
           </>
         ) : (
-          <View style={{alignItems: 'center', gap: 16, padding: 24}}>
-            <Text style={[type.body, {color: colors.muted, textAlign: 'center'}]}>{message}</Text>
+          <View style={s.message}>
+            <Text style={[type.body, s.text]}>{message}</Text>
             {hasPermission || canRequestPermission ? null : (
               <TextLink label="Apri Impostazioni" onPress={() => Linking.openSettings()} />
             )}
           </View>
         )}
       </View>
-      <Text style={[type.small, {color: colors.muted, textAlign: 'center'}]}>
+      <Text style={[type.small, s.text]}>
         {busy ? 'Lettura in corso…' : hint}
       </Text>
       <View style={s.row}>
@@ -63,14 +63,16 @@ export function Scanner({
 
 const s = StyleSheet.create({
   fill: {flex: 1, gap: 16},
+  message: {alignItems: 'center', gap: 16, padding: 24},
+  text: {color: colors.muted, textAlign: 'center'},
   row: {flexDirection: 'row', gap: 12, alignSelf: 'stretch'},
   camera: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 28,
     overflow: 'hidden',
     backgroundColor: colors.panel,
-    borderWidth: 1.5,
-    borderColor: colors.line,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
     alignItems: 'center',
     justifyContent: 'center',
   },

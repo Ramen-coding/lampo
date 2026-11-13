@@ -1,7 +1,18 @@
-import React from 'react';
-import {ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View} from 'react-native';
+import React, {useEffect, useRef} from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import {formatSat} from '../cache';
 import Svg, {Circle, Path, Rect} from 'react-native-svg';
+import {Glass} from './glass';
 
 /** Nome mostrato nell'app (unico punto da cambiare quando scegliamo il nome). */
 export const APP_NAME = 'Lampo';
@@ -35,6 +46,9 @@ export const colors = {
   bg: '#000000', // sfondo
   panel: '#0E0E0E', // superfici (campi, pulsanti secondari)
   line: '#262626', // bordi
+  fill: 'rgba(255,255,255,0.10)', // ovali dentro il vetro (Ricevi, QR)
+  field: 'rgba(255,255,255,0.06)', // campi di testo
+  hairline: 'rgba(255,255,255,0.14)',
   text: '#FFFFFF',
   muted: '#8E8E93',
   amber: '#F7931A', // arancio bitcoin: solo per l'azione principale
@@ -59,21 +73,24 @@ type ButtonProps = {
 
 export function Button({label, onPress, variant = 'primary', disabled, loading}: ButtonProps) {
   const primary = variant === 'primary';
+  const content = loading ? (
+    <ActivityIndicator color={primary ? colors.bg : colors.text} />
+  ) : (
+    <Text style={[s.buttonText, {color: primary ? colors.bg : colors.text}]}>{label}</Text>
+  );
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       disabled={disabled || loading}
-      style={({pressed}) => [
-        s.button,
-        primary ? s.primary : s.secondary,
-        (disabled || loading) && {opacity: 0.4},
-        pressed && {transform: [{scale: 0.98}]},
-      ]}>
-      {loading ? (
-        <ActivityIndicator color={primary ? colors.bg : colors.text} />
+      style={({pressed}) => [s.buttonWrap, (disabled || loading) && s.dimmed, pressed && s.pressed]}>
+      {primary ? (
+        <View style={[s.button, s.primary]}>{content}</View>
       ) : (
-        <Text style={[s.buttonText, {color: primary ? colors.bg : colors.text}]}>{label}</Text>
+        // Il pulsante secondario è una capsula di vetro.
+        <Glass interactive style={s.button}>
+          {content}
+        </Glass>
       )}
     </Pressable>
   );
@@ -82,59 +99,188 @@ export function Button({label, onPress, variant = 'primary', disabled, loading}:
 export function TextLink({label, onPress}: {label: string; onPress: () => void}) {
   return (
     <Pressable accessibilityRole="button" onPress={onPress} hitSlop={12}>
-      <Text style={[type.small, {color: colors.muted, textDecorationLine: 'underline'}]}>{label}</Text>
+      <Text style={[type.small, s.link]}>{label}</Text>
     </Pressable>
+  );
+}
+
+/** Pillola di vetro con una parola: i comandi in alto ("Chiudi", "Scollega"). */
+export function PillButton({label, onPress}: {label: string; onPress: () => void}) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={10} style={({pressed}) => pressed && s.pressed}>
+      <Glass interactive style={s.pill}>
+        <Text style={s.pillText}>{label}</Text>
+      </Glass>
+    </Pressable>
+  );
+}
+
+/** Titolo della schermata e pillola "Chiudi": uguale in Invia e Ricevi. */
+export function ScreenHeader({title, onClose}: {title: string; onClose: () => void}) {
+  return (
+    <View style={s.header}>
+      <Text style={[type.title, {color: colors.text}]}>{title}</Text>
+      <PillButton label="Chiudi" onPress={onClose} />
+    </View>
   );
 }
 
 export type LinkState = 'connecting' | 'online' | 'offline';
 
+const STATUS: Record<LinkState, {color: string; label: string}> = {
+  online: {color: colors.green, label: 'Nodo collegato'},
+  connecting: {color: colors.amber, label: 'Collegamento al nodo…'},
+  offline: {color: colors.red, label: 'Nodo non raggiungibile'},
+};
+
 export function StatusLine({state}: {state: LinkState}) {
-  const color = state === 'online' ? colors.green : state === 'connecting' ? colors.amber : colors.red;
-  const label = state === 'online' ? 'Nodo collegato' : state === 'connecting' ? 'Collegamento al nodo…' : 'Nodo non raggiungibile';
   return (
     <View style={s.status}>
-      <View style={[s.dot, {backgroundColor: color}]} />
-      <Text style={[type.small, {color: colors.muted}]}>{label}</Text>
+      <StatusDot state={state} />
+      <Text style={[type.small, {color: colors.muted}]}>{STATUS[state].label}</Text>
     </View>
   );
 }
 
+/** Lo stato del nodo dentro una pillola di vetro (in alto nella Home). */
+export function StatusPill({state}: {state: LinkState}) {
+  return (
+    <Glass style={[s.pill, s.status]} accessibilityLabel={STATUS[state].label}>
+      <StatusDot state={state} />
+      <Text style={s.pillText}>{STATUS[state].label}</Text>
+    </Glass>
+  );
+}
+
+/** Il pallino di stato: mentre il nodo si collega "respira". */
+function StatusDot({state}: {state: LinkState}) {
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (state !== 'connecting') {
+      pulse.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {toValue: 0.3, duration: 600, useNativeDriver: true}),
+        Animated.timing(pulse, {toValue: 1, duration: 600, useNativeDriver: true}),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [state, pulse]);
+  return <Animated.View style={[s.dot, {backgroundColor: STATUS[state].color, opacity: pulse}]} />;
+}
+
 const s = StyleSheet.create({
+  buttonWrap: {flex: 1},
+  // Capsula: stessa forma degli ovali nella barra della Home.
   button: {
     height: 58,
-    borderRadius: 16,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
-    flex: 1,
   },
   primary: {backgroundColor: colors.amber},
-  secondary: {borderWidth: 1.5, borderColor: colors.line, backgroundColor: colors.panel},
   buttonText: {fontSize: 18, fontWeight: '600'},
+  dimmed: {opacity: 0.4},
+  pressed: {transform: [{scale: 0.97}]},
+  link: {color: colors.muted, textDecorationLine: 'underline'},
+  header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'},
+  pill: {height: 36, borderRadius: 18, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center'},
+  pillText: {fontSize: 15, fontWeight: '500', color: colors.text},
   status: {flexDirection: 'row', alignItems: 'center', gap: 8},
   dot: {width: 8, height: 8, borderRadius: 4},
-  chip: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: colors.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  amountInput: {color: colors.text, textAlign: 'center', minWidth: 120},
-  iconButton: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  chip: {width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center'},
+  amountInput: {color: colors.text, textAlign: 'center', minWidth: 120, padding: 0},
+  stage: {flex: 1, alignSelf: 'stretch'},
+  stageTop: {flex: 2, justifyContent: 'flex-end'},
+  stageError: {paddingBottom: 10},
+  // Se lo spazio non basta (schermo basso, tastiera alta) è il campo a stringersi: mai sovrapposizioni.
+  stageMain: {justifyContent: 'center', flexShrink: 1, minHeight: 64},
+  stageSecond: {height: 52, marginTop: 16, justifyContent: 'center'},
+  stageBottom: {flex: 1},
+  error: {color: colors.red, textAlign: 'center'},
+  badge: {width: 76, height: 76, borderRadius: 38, alignItems: 'center', justifyContent: 'center', marginBottom: 14},
 });
+
+/** Aspetto comune dei campi di testo (fattura, descrizione, frase di abbinamento). */
+export const field = {
+  borderRadius: 20,
+  borderWidth: StyleSheet.hairlineWidth,
+  borderColor: colors.hairline,
+  backgroundColor: colors.field,
+  color: colors.text,
+  fontSize: 17,
+  paddingHorizontal: 16,
+} as const;
+
+/**
+ * La parte centrale di Invia e Ricevi: un campo grande e, sotto, una riga da 52 punti
+ * (descrizione oppure Incolla e Fotocamera). Le misure sono fisse e uguali nelle due
+ * schermate, così il blocco sta alla stessa altezza: a due terzi dello spazio che resta
+ * sopra la tastiera, comodo per il pollice e mai coperto dai tasti.
+ */
+export function Stage({
+  main,
+  second,
+  error,
+}: {
+  main: React.ReactNode;
+  second: React.ReactNode;
+  error?: string;
+}) {
+  // Sugli schermi bassi (iPhone SE) il campo si accorcia per lasciare posto alla tastiera.
+  const {height} = useWindowDimensions();
+  const mainHeight = height < 700 ? 96 : 120;
+  return (
+    <View style={s.stage}>
+      <View style={s.stageTop}>
+        {error ? (
+          <Text style={[type.small, s.error, s.stageError]} numberOfLines={3}>
+            {error}
+          </Text>
+        ) : null}
+      </View>
+      <View style={[s.stageMain, {height: mainHeight}]}>{main}</View>
+      <View style={s.stageSecond}>{second}</View>
+      <View style={s.stageBottom} />
+    </View>
+  );
+}
+
+/** Spunta verde in una bolla di vetro che "sboccia": pagamento inviato o ricevuto. */
+export function SuccessBadge() {
+  const pop = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(pop, {toValue: 1, damping: 9, stiffness: 160, mass: 0.8, useNativeDriver: true}).start();
+  }, [pop]);
+  return (
+    <Animated.View style={{transform: [{scale: pop}]}}>
+      <Glass style={s.badge}>
+        <Svg width={38} height={38} viewBox="0 0 24 24" fill="none">
+          <Path d="M5 12.5l4.5 4.5L19 7.5" stroke={colors.green} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+        </Svg>
+      </Glass>
+    </Animated.View>
+  );
+}
+
+/** Freccia di Ricevi (verso il basso a sinistra) e di Invia (verso l'alto a destra). */
+export function ArrowIcon({direction, size = 18, color = colors.text}: {direction: 'in' | 'out'; size?: number; color?: string}) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d={direction === 'out' ? 'M7 17L17 7M9 7h8v8' : 'M17 7L7 17M7 9v8h8'}
+        stroke={color}
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
 
 /** Icona QR (tre mirini + moduli), disegnata in SVG per restare nitida. */
 export function QrIcon({size = 26, color = colors.text}: {size?: number; color?: string}) {
@@ -158,8 +304,14 @@ export function QrIcon({size = 26, color = colors.text}: {size?: number; color?:
 export function PasteIcon({size = 18, color = colors.text}: {size?: number; color?: string}) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Rect x={5} y={4} width={14} height={17} rx={2.5} stroke={color} strokeWidth={1.6} />
-      <Rect x={9} y={2.5} width={6} height={3.5} rx={1.2} stroke={color} strokeWidth={1.6} fill={colors.bg} />
+      {/* Il contorno della tavoletta si interrompe dietro la molletta: niente riempimenti, sta bene anche sul vetro. */}
+      <Path
+        d="M15 4h1.5A2.5 2.5 0 0 1 19 6.5v12a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5v-12A2.5 2.5 0 0 1 7.5 4H9"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+      <Rect x={9} y={2.5} width={6} height={3.5} rx={1.2} stroke={color} strokeWidth={1.6} />
       <Path d="M9 11h6M9 15h4" stroke={color} strokeWidth={1.6} strokeLinecap="round" />
     </Svg>
   );
@@ -180,7 +332,7 @@ export function CameraIcon({size = 18, color = colors.text}: {size?: number; col
   );
 }
 
-/** Pulsante minimal tondo: solo icona (l'etichetta resta per VoiceOver). */
+/** Pulsante tondo di vetro: solo icona (l'etichetta resta per VoiceOver). */
 export function ChipButton({
   label,
   icon,
@@ -199,37 +351,10 @@ export function ChipButton({
       onPress={onPress}
       disabled={disabled}
       hitSlop={6}
-      style={({pressed}) => [s.chip, pressed && {backgroundColor: colors.panel}, disabled && {opacity: 0.4}]}>
-      {icon}
-    </Pressable>
-  );
-}
-
-/** Pulsante tondo con icona (es. il QR tra Ricevi e Invia). */
-export function IconButton({
-  onPress,
-  disabled,
-  label,
-  children,
-}: {
-  onPress: () => void;
-  disabled?: boolean;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      disabled={disabled}
-      hitSlop={8}
-      style={({pressed}) => [
-        s.iconButton,
-        disabled && {opacity: 0.4},
-        pressed && {transform: [{scale: 0.94}]},
-      ]}>
-      {children}
+      style={({pressed}) => [pressed && s.pressed, disabled && s.dimmed]}>
+      <Glass interactive style={s.chip}>
+        {icon}
+      </Glass>
     </Pressable>
   );
 }
@@ -247,6 +372,7 @@ export function AmountInput({value, onChange}: {value: string; onChange: (digits
       keyboardType="number-pad"
       placeholder="0"
       placeholderTextColor={colors.muted}
+      keyboardAppearance="dark"
       autoFocus
     />
   );
