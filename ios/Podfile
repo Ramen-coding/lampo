@@ -31,6 +31,14 @@ target 'TelecomandoLnc' do
       # :ccache_enabled => true
     )
 
+    # Alcuni pod (es. il bundle privacy di react-native-image-picker) non hanno
+    # un deployment target: Xcode userebbe 9.0, che non è più supportato.
+    installer.pods_project.targets.each do |t|
+      t.build_configurations.each do |c|
+        c.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = min_ios_version_supported
+      end
+    end
+
     # Il framework LNC (Go) usa il resolver DNS di sistema: serve libresolv.
     installer.aggregate_targets.each do |target|
       target.xcconfigs.each do |name, xcconfig|
