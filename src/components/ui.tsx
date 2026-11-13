@@ -254,7 +254,7 @@ export function Stage({
 export function SuccessBadge() {
   const pop = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.spring(pop, {toValue: 1, damping: 9, stiffness: 160, mass: 0.8, useNativeDriver: true}).start();
+    Animated.spring(pop, {toValue: 1, damping: 14, stiffness: 420, mass: 0.6, useNativeDriver: true}).start();
   }, [pop]);
   return (
     <Animated.View style={{transform: [{scale: pop}]}}>

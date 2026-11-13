@@ -20,6 +20,9 @@ const PADDING = 12;
 const ACTIONS = 44;
 /** La bolla parte grande più o meno quanto il tasto QR. */
 const START_SCALE = 0.15;
+/** Durate brevi: la bolla deve essere pronta quasi subito. */
+const OPEN_MS = 170;
+const CLOSE_MS = 110;
 
 /**
  * Il QR personale in una bolla di vetro che si gonfia dal tasto QR della barra
@@ -48,12 +51,11 @@ export function QrBubble({
   const closing = useRef(false);
 
   useEffect(() => {
-    // Molla morbida: la bolla supera di poco la misura finale e si assesta.
-    Animated.spring(open, {
+    // Rapida, con un filo di rimbalzo alla fine: la bolla supera di poco la misura e si assesta.
+    Animated.timing(open, {
       toValue: 1,
-      damping: 15,
-      stiffness: 170,
-      mass: 0.9,
+      duration: OPEN_MS,
+      easing: Easing.out(Easing.back(1.4)),
       useNativeDriver: true,
     }).start();
   }, [open]);
@@ -63,8 +65,8 @@ export function QrBubble({
     closing.current = true;
     Animated.timing(open, {
       toValue: 0,
-      duration: 220,
-      easing: Easing.in(Easing.cubic),
+      duration: CLOSE_MS,
+      easing: Easing.in(Easing.quad),
       useNativeDriver: true,
     }).start(() => onClose());
   }, [open, onClose]);
@@ -88,11 +90,11 @@ export function QrBubble({
         if (g.dy > 90 || g.vy > 0.8) {
           closeRef.current();
         } else {
-          Animated.spring(drag, {toValue: 0, useNativeDriver: true, bounciness: 6}).start();
+          Animated.spring(drag, {toValue: 0, useNativeDriver: true, speed: 30, bounciness: 4}).start();
         }
       },
       onPanResponderTerminate: () => {
-        Animated.spring(drag, {toValue: 0, useNativeDriver: true, bounciness: 6}).start();
+        Animated.spring(drag, {toValue: 0, useNativeDriver: true, speed: 30, bounciness: 4}).start();
       },
     }),
   ).current;
@@ -108,7 +110,7 @@ export function QrBubble({
     inputRange: [0, 1],
     outputRange: [(bubbleHeight * (1 - START_SCALE)) / 2, 0],
   });
-  const contentOpacity = open.interpolate({inputRange: [0, 0.45, 1], outputRange: [0, 0, 1], extrapolate: 'clamp'});
+  const contentOpacity = open.interpolate({inputRange: [0, 0.3, 0.8], outputRange: [0, 0, 1], extrapolate: 'clamp'});
   const backdropOpacity = open.interpolate({inputRange: [0, 1], outputRange: [0, 1], extrapolate: 'clamp'});
 
   return (

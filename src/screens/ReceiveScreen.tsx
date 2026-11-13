@@ -1,8 +1,9 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {KeyboardAvoidingView, StyleSheet, Text, TextInput, View} from 'react-native';
+import {StyleSheet, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import {AmountInput, Button, ScreenHeader, Stage, SuccessBadge, colors, field, type} from '../components/ui';
+import {KeyboardFrame} from '../components/KeyboardFrame';
 import {createInvoice, parseAmount, watchInvoice} from '../lnc/node';
 import {formatSat} from '../cache';
 
@@ -50,8 +51,8 @@ export function ReceiveScreen({onClose, onReceived}: {onClose: () => void; onRec
   }
 
   return (
-    // Il tastierino non deve coprire il pulsante in basso.
-    <KeyboardAvoidingView style={s.root} behavior="padding">
+    // Lo spazio del tastierino è riservato da subito: il contenuto compare già al suo posto.
+    <KeyboardFrame kind={step.kind === 'amount' ? 'number' : null} style={s.root}>
       <ScreenHeader title="Ricevi" onClose={onClose} />
 
       {step.kind === 'amount' && (
@@ -112,7 +113,7 @@ export function ReceiveScreen({onClose, onReceived}: {onClose: () => void; onRec
           </View>
         </View>
       )}
-    </KeyboardAvoidingView>
+    </KeyboardFrame>
   );
 }
 

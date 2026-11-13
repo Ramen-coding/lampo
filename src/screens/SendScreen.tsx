@@ -1,7 +1,8 @@
 import React, {useRef, useState} from 'react';
-import {KeyboardAvoidingView, Pressable, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import {Pressable, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {Scanner} from '../components/Scanner';
+import {KeyboardFrame, KeyboardKind} from '../components/KeyboardFrame';
 import {
   AmountInput,
   Button,
@@ -146,9 +147,17 @@ export function SendScreen({onClose, onPaid}: Props) {
     setStep({kind: 'input'});
   }
 
+  // Quale tastiera usa il passo corrente: testo per la fattura, numeri per l'importo libero.
+  const keyboard: KeyboardKind | null =
+    step.kind === 'input'
+      ? 'text'
+      : step.kind === 'address' || (step.kind === 'confirm' && !step.inv.amountSat)
+      ? 'number'
+      : null;
+
   return (
-    // Il tastierino non deve coprire il pulsante in basso.
-    <KeyboardAvoidingView style={s.root} behavior="padding">
+    // Lo spazio della tastiera è riservato da subito: il contenuto compare già al suo posto.
+    <KeyboardFrame kind={keyboard} style={s.root}>
       <ScreenHeader title="Invia" onClose={onClose} />
 
       {step.kind === 'input' && (
@@ -173,7 +182,8 @@ export function SendScreen({onClose, onPaid}: Props) {
                 multiline
                 // La tastiera si apre da sola, come in Ricevi.
                 autoFocus
-                submitBehavior="blurAndSubmit"
+                // "Vai" non chiude la tastiera: se il testo non è valido si corregge subito.
+                submitBehavior="submit"
                 returnKeyType="go"
                 onSubmitEditing={() => text.trim() && proceed(text)}
               />
@@ -288,7 +298,7 @@ export function SendScreen({onClose, onPaid}: Props) {
           </View>
         </View>
       )}
-    </KeyboardAvoidingView>
+    </KeyboardFrame>
   );
 }
 
