@@ -1,0 +1,64 @@
+name: Android release
+
+# Builds the two Android APKs from the chosen branch and publishes them as a
+# GitHub release. Run it by hand: Actions, "Android release", "Run workflow".
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release, for example v0.3.0-beta
+        required: true
+      name:
+        description: Title of the release, for example Lampo 0.3 beta
+        required: true
+      notes:
+        description: Release notes (Markdown)
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Also downloads the LNC native libraries (postinstall).
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;android-37.0" "build-tools;37.0.0" "ndk;27.1.12297006" "cmake;3.22.1" > /dev/null
+
+      # One APK per architecture, signed with the test key kept in the repository.
+      - name: Build APKs
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --console=plain
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          NAME: ${{ inputs.name }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          out=android/app/build/outputs/apk/release
+          cp "$out/app-arm64-v8a-release.apk" Lampo-android-arm64.apk
+          cp "$out/app-armeabi-v7a-release.apk" Lampo-android-armv7.apk
+          gh release create "$TAG" Lampo-android-arm64.apk Lampo-android-armv7.apk \
+            --title "$NAME" --notes "$NOTES" --target "$GITHUB_SHA"
