@@ -10,8 +10,17 @@ let html = fs.readFileSync(path.join(dir, 'demo.html'), 'utf8')
   .replace('{{QR_PAIR}}', sized(svg('qr-pair.svg'), 120))
   .replace('{{QR_PAY}}', sized(svg('qr-pay.svg'), 150))
   .replace('{{QR_INV}}', sized(svg('qr-invoice.svg'), 248))
-  .replace('{{PASTE}}', icon('<rect x="5" y="4" width="14" height="17" rx="2.5"/><rect x="9" y="2.5" width="6" height="3.5" rx="1.2" fill="#000"/><path d="M9 11h6M9 15h4" stroke-linecap="round"/>', 22))
-  .replace('{{CAMERA}}', icon('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v9A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5z" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5"/>', 22))
+  .replace('{{QR_MINE}}', sized(svg('qr-mine.svg'), 300))
+  .replaceAll('{{PASTE}}', icon('<path d="M15 4h1.5A2.5 2.5 0 0 1 19 6.5v12a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 18.5v-12A2.5 2.5 0 0 1 7.5 4H9" stroke-linecap="round"/><rect x="9" y="2.5" width="6" height="3.5" rx="1.2"/><path d="M9 11h6M9 15h4" stroke-linecap="round"/>', 22))
+  .replaceAll('{{CAMERA}}', icon('<path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v9A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5z" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5"/>', 22))
+  // frecce di Ricevi e Invia, spunta di riuscita (come in ui.tsx)
+  .replace('{{ARROW_IN}}', icon('<path d="M17 7L7 17M7 9v8h8" stroke-linecap="round" stroke-linejoin="round"/>', 18, 2.4))
+  .replace('{{ARROW_OUT}}', icon('<path d="M7 17L17 7M9 7h8v8" stroke-linecap="round" stroke-linejoin="round"/>', 18, 2.4).replace('stroke="#fff"', 'stroke="#000"'))
+  .replaceAll('{{CHECK}}', icon('<path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/>', 38, 2.4).replace('stroke="#fff"', 'stroke="#30D158"'))
+  // tastiera email di Invia
+  .replace('{{ROW1}}', [...'qwertyuiop'].map(c => `<div>${c}</div>`).join(''))
+  .replace('{{ROW2}}', [...'asdfghjkl'].map(c => `<div>${c}</div>`).join(''))
+  .replace('{{ROW3}}', [...'zxcvbnm'].map(c => `<div>${c}</div>`).join(''))
   .replace('{{QRICON}}', `<svg width="26" height="26" viewBox="0 0 24 24">${finder(2, 2)}${finder(14, 2)}${finder(2, 14)}<path d="M14 14h3v3h-3zM19 14h3v3h-3zM14 19h3v3h-3zM17 17h2v2h-2zM19 19h3v3h-3z" fill="#fff"/></svg>`);
 fs.writeFileSync(path.join(require('os').tmpdir(), 'lampo-demo-built.html'), html);
 
