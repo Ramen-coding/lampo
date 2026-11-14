@@ -125,7 +125,7 @@ export function QrBubble({
           {width: bubbleWidth, height: bubbleHeight, transform: [{translateY: Animated.add(anchor, drag)}, {scale}]},
         ]}
         {...pan.panHandlers}>
-        <Glass style={s.bubble}>
+        <Glass solid style={s.bubble}>
           <Animated.View style={[s.content, {opacity: contentOpacity}]}>
             {/* Fondo bianco: il QR resta leggibile anche se l'immagine è ritagliata stretta. */}
             <View style={s.frame}>

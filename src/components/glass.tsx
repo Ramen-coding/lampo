@@ -11,6 +11,12 @@ export const hasGlass = isLiquidGlassSupported;
 type Props = ViewProps & {
   /** Il vetro reagisce al tocco (si allarga e brilla): per i pulsanti. */
   interactive?: boolean;
+  /**
+   * Per le superfici che coprono altri comandi (la bolla del QR sopra la barra):
+   * il vetro di sistema sfoca quello che ha sotto, quello disegnato non può, quindi
+   * diventa quasi opaco perché sotto non si legga niente.
+   */
+  solid?: boolean;
 };
 
 /**
@@ -22,7 +28,7 @@ type Props = ViewProps & {
  *   l'opacità non torna a 1 (le trasformazioni invece vanno bene);
  * - niente `borderWidth` sullo stile: sposterebbe i figli rispetto al vetro.
  */
-export function Glass({interactive, style, children, ...rest}: Props) {
+export function Glass({interactive, solid, style, children, ...rest}: Props) {
   if (hasGlass) {
     return (
       <LiquidGlassView effect="regular" colorScheme="dark" interactive={interactive} style={style} {...rest}>
@@ -31,19 +37,24 @@ export function Glass({interactive, style, children, ...rest}: Props) {
     );
   }
   return (
-    <View style={[s.fallback, style]} {...rest}>
+    <View style={[s.fallback, solid && s.solid, style]} {...rest}>
       {children}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  // Contorno disegnato con `outline`: non occupa spazio, così le misure restano
-  // identiche a quelle del vetro vero.
+  // Vetro "disegnato" per Android e per gli iPhone senza Liquid Glass: fondo traslucido
+  // (dietro si intravede la luce d'ambiente), un filo di luce sul bordo alto come un
+  // riflesso e un contorno sottilissimo. Sono ombre interne: non occupano spazio, così
+  // le misure restano identiche a quelle del vetro vero.
   fallback: {
-    backgroundColor: 'rgba(44,44,46,0.72)',
-    outlineWidth: StyleSheet.hairlineWidth,
-    outlineColor: 'rgba(255,255,255,0.16)',
-    outlineOffset: -StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(120,120,128,0.24)',
+    boxShadow: [
+      {inset: true, offsetX: 0, offsetY: 1, blurRadius: 0.5, color: 'rgba(255,255,255,0.30)'},
+      {inset: true, offsetX: 0, offsetY: -1, blurRadius: 0.5, color: 'rgba(255,255,255,0.08)'},
+      {inset: true, offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: StyleSheet.hairlineWidth, color: 'rgba(255,255,255,0.14)'},
+    ],
   },
+  solid: {backgroundColor: 'rgba(34,34,37,0.97)'},
 });
