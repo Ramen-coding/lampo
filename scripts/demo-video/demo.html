@@ -5,7 +5,7 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 1280px; height: 720px; background: #000; overflow: hidden; }
-  body { font-family: 'Inter', sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
+  body { font-family: -apple-system, 'Inter', sans-serif; color: #fff; -webkit-font-smoothing: antialiased; }
   #stage { position: absolute; inset: 0;
     background: radial-gradient(900px 600px at 30% 50%, #151007 0%, #000 60%); }
 
@@ -13,7 +13,7 @@
   #phone { position: absolute; left: 150px; top: 26px; width: 390px; height: 844px;
     transform-origin: 0 0; transform: scale(0.79); }
   #bezel { position: absolute; inset: -13px; border-radius: 62px; background: #1b1b1d;
-    box-shadow: 0 0 0 2px #3a3a3c, 0 40px 120px rgba(247,147,26,0.10); }
+    box-shadow: 0 0 0 2px #3a3a3c, 0 40px 120px rgba(247,147,26,0.12); }
   #screen { position: absolute; inset: 0; border-radius: 50px; overflow: hidden; background: #000; }
   #island { position: absolute; top: 11px; left: 50%; width: 122px; height: 35px; margin-left: -61px;
     background: #000; border-radius: 20px; z-index: 50; }
@@ -23,13 +23,14 @@
   #homeind { position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px;
     border-radius: 3px; background: #fff; z-index: 45; }
 
-  .layer { position: absolute; inset: 0; background: #000; }
+  .layer { position: absolute; inset: 0; background: #000; overflow: hidden; }
   .safe { position: absolute; top: 54px; left: 0; right: 0; bottom: 34px; }
   .col { display: flex; flex-direction: column; }
   .row { display: flex; flex-direction: row; align-self: stretch; gap: 12px; }
+  .sub { position: absolute; inset: 0; display: flex; flex-direction: column; }
 
   /* tipografia come in ui.tsx */
-  .balance { font-size: 56px; font-weight: 600; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; }
+  .balance { font-size: 56px; font-weight: 600; letter-spacing: -1.5px; font-variant-numeric: tabular-nums; line-height: 68px; }
   .title { font-size: 22px; font-weight: 600; }
   .body { font-size: 17px; }
   .small { font-size: 14px; }
@@ -37,25 +38,67 @@
   .green { color: #30D158; }
   .link { font-size: 14px; color: #8E8E93; text-decoration: underline; }
 
-  .btn { height: 58px; border-radius: 16px; display: flex; align-items: center; justify-content: center;
+  /* vetro (Liquid Glass): traslucido, sfocato, con un filo di luce sul bordo */
+  .glass { position: relative; background: rgba(58,58,62,0.55);
+    box-shadow: inset 0 0.75px 0 rgba(255,255,255,0.30), inset 0 0 0 0.75px rgba(255,255,255,0.12),
+      inset 0 -0.75px 0 rgba(255,255,255,0.06), 0 8px 24px rgba(0,0,0,0.35); }
+  .glass::before { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0) 55%); }
+  .glass > * { position: relative; }
+
+  /* pulsanti a capsula */
+  .btn { height: 58px; border-radius: 29px; display: flex; align-items: center; justify-content: center;
     flex: 1; font-size: 18px; font-weight: 600; padding: 0 20px; }
   .primary { background: #F7931A; color: #000; }
-  .secondary { background: #0E0E0E; border: 1.5px solid #262626; color: #fff; }
   .disabled { opacity: 0.4; }
-  .iconbtn { width: 58px; height: 58px; border-radius: 29px; border: 1.5px solid #262626; background: #0E0E0E;
-    display: flex; align-items: center; justify-content: center; flex: none; }
-  .chip { width: 52px; height: 52px; border-radius: 26px; border: 1px solid #262626;
-    display: flex; align-items: center; justify-content: center; }
-  .input { border-radius: 14px; border: 1.5px solid #262626; background: #0E0E0E; font-size: 17px;
-    padding: 16px; line-height: 23px; }
-  .status { display: flex; align-items: center; gap: 8px; }
+  .pill { height: 36px; border-radius: 18px; padding: 0 14px; display: flex; align-items: center; justify-content: center;
+    gap: 8px; font-size: 15px; font-weight: 500; flex: none; }
+  .chip { width: 52px; height: 52px; border-radius: 26px; display: flex; align-items: center; justify-content: center; }
+  .field { border-radius: 20px; border: 0.5px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.06);
+    font-size: 17px; padding: 14px 16px; line-height: 23px; }
   .dot { width: 8px; height: 8px; border-radius: 4px; }
-  .header { display: flex; justify-content: space-between; align-items: center; }
+  .header { display: flex; justify-content: space-between; align-items: center; height: 36px; }
   .center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-  .sub { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+  /* Invia / Ricevi: blocco centrale alla stessa altezza (Stage in ui.tsx) */
+  .stage { flex: 1; display: flex; flex-direction: column; }
+  .stage .top { flex: 2; }
+  .stage .main { height: 120px; flex-shrink: 1; min-height: 64px; display: flex; flex-direction: column; justify-content: center; }
+  .stage .second { height: 52px; margin-top: 16px; display: flex; justify-content: center; }
+  .stage .bottom { flex: 1; }
+  .chips { display: flex; gap: 20px; justify-content: center; }
+
+  /* Home */
+  #ambient { position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 331px 169px at 50% 100%, rgba(247,147,26,0.42) 0%, rgba(247,147,26,0.14) 45%, rgba(247,147,26,0) 100%); }
+  #home-scroll { position: absolute; inset: 0 0 92px 0; padding: 24px 16px 8px; display: flex; flex-direction: column; }
+  /* il saldo in una bolla di vetro che cambia forma con la cifra */
+  #bubble { border-radius: 40px; overflow: hidden; }
+  .bal-in { position: absolute; left: 0; top: 0; padding: 14px 26px 16px; min-width: 150px; display: flex;
+    flex-direction: column; align-items: center; white-space: nowrap; }
+  .amt { font-size: 61px; line-height: 70px; font-weight: 600; letter-spacing: -1.8px; font-variant-numeric: tabular-nums; }
+  .cap2 { font-size: 17px; font-weight: 500; color: #8E8E93; }
+  #bar { position: absolute; left: 16px; right: 16px; bottom: 12px; height: 72px; border-radius: 36px;
+    padding: 8px; display: flex; gap: 8px; align-items: center; }
+  .oval { flex: 1; height: 56px; border-radius: 28px; display: flex; align-items: center; justify-content: center;
+    gap: 8px; background: rgba(255,255,255,0.10); font-size: 18px; font-weight: 600; }
+  .oval.amber { background: #F7931A; color: #000; }
+  .round { width: 56px; height: 56px; border-radius: 28px; flex: none; display: flex; align-items: center;
+    justify-content: center; background: rgba(255,255,255,0.10); }
+  #refresh { position: absolute; left: 50%; top: 64px; margin-left: -14px; width: 28px; height: 28px; }
+  #refresh svg { width: 28px; height: 28px; }
+
+  /* bolla del QR personale */
+  #qr-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.55); z-index: 20; }
+  #qr-bubble { position: absolute; left: 12px; width: 366px; height: 422px; bottom: 12px; border-radius: 40px; z-index: 21; }
+  #qr-content { position: absolute; inset: 0; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+  #qr-frame { flex: 1; border-radius: 28px; background: #fff; padding: 14px; display: flex; align-items: center; justify-content: center; }
+  #qr-frame svg { display: block; }
+  .qract { flex: 1; height: 44px; border-radius: 22px; background: rgba(255,255,255,0.10); display: flex;
+    align-items: center; justify-content: center; font-size: 15px; font-weight: 600; }
 
   /* fotocamera */
-  .camera { flex: 1; border-radius: 20px; overflow: hidden; border: 1.5px solid #262626; position: relative;
+  .camera { flex: 1; border-radius: 28px; overflow: hidden; border: 0.5px solid rgba(255,255,255,0.14); position: relative;
     background: radial-gradient(circle at 30% 20%, #3b3326, #15130f 70%); }
   .viewfinder { position: absolute; left: 50%; top: 50%; width: 220px; height: 220px; margin: -110px 0 0 -110px;
     border-radius: 24px; border: 3px solid rgba(255,255,255,0.85); }
@@ -64,15 +107,23 @@
 
   .spinner { width: 22px; height: 22px; }
 
-  /* tastierino numerico iOS (scuro) */
-  #keyboard { position: absolute; left: 0; right: 0; bottom: 0; height: 291px; background: #2b2b2d;
-    padding: 6px 6px 0; z-index: 30; }
-  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-  .key { height: 47px; border-radius: 6px; background: #6b6b6e; display: flex; flex-direction: column;
+  /* spunta di riuscita: bolla di vetro */
+  .badge { width: 76px; height: 76px; border-radius: 38px; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; }
+
+  /* tastiere iOS (scure) */
+  .kb { position: absolute; left: 0; right: 0; bottom: 0; height: 291px; background: rgba(43,43,45,0.98);
+    padding: 8px 4px 0; z-index: 30; border-radius: 26px 26px 0 0; }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 0 2px; }
+  .key { height: 47px; border-radius: 8px; background: #6b6b6e; display: flex; flex-direction: column;
     align-items: center; justify-content: center; font-size: 25px; line-height: 26px; }
   .key small { font-size: 10px; font-weight: 600; letter-spacing: 2px; line-height: 10px; }
   .key.flat { background: transparent; }
   .key.pressed { background: #a3a3a6; }
+  .qw { display: flex; gap: 6px; justify-content: center; margin-bottom: 11px; }
+  .qw div { width: 33px; height: 44px; border-radius: 8px; background: #6b6b6e; display: flex; align-items: center;
+    justify-content: center; font-size: 22px; }
+  .qw .sp { background: #464649; font-size: 16px; }
+  .qw .wide { width: 46px; }
 
   /* Face ID */
   #faceid { position: absolute; left: 50%; top: 50%; width: 160px; height: 160px; margin: -80px 0 0 -80px;
@@ -89,7 +140,7 @@
   #captions { position: absolute; left: 590px; top: 0; width: 620px; height: 720px; }
   .cap { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); }
   .cap .step { font-size: 16px; font-weight: 600; letter-spacing: 3px; color: #F7931A; text-transform: uppercase; }
-  .cap h1 { font-family: 'Inter Display', 'Inter', sans-serif; font-size: 54px; font-weight: 700;
+  .cap h1 { font-family: -apple-system, 'Inter Display', 'Inter', sans-serif; font-size: 54px; font-weight: 700;
     letter-spacing: -1.5px; line-height: 1.08; margin: 14px 0 18px; }
   .cap p { font-size: 24px; line-height: 1.45; color: #a1a1a6; max-width: 560px; }
   .cap p b { color: #fff; font-weight: 600; }
@@ -130,11 +181,11 @@
               <div class="title">Collega il tuo nodo</div>
               <div class="body muted" style="line-height:24px">In Lightning Terminal crea una sessione Lightning Node Connect, poi inquadra il QR o incolla la frase di abbinamento.</div>
             </div>
-            <div class="input" id="phrase" style="min-height:110px"></div>
+            <div class="field" id="phrase" style="min-height:110px"></div>
             <div class="small muted" id="words">0/10 parole</div>
-            <div style="display:flex;gap:20px;justify-content:center">
-              <div class="chip" id="pair-paste">{{PASTE}}</div>
-              <div class="chip" id="pair-cam">{{CAMERA}}</div>
+            <div class="chips">
+              <div class="chip glass" id="pair-paste">{{PASTE}}</div>
+              <div class="chip glass" id="pair-cam">{{CAMERA}}</div>
             </div>
             <div><span class="link">Uso un mailbox server mio</span></div>
             <div class="small muted" id="pair-busy">Collegamento al nodo… la prima volta può servire qualche secondo.</div>
@@ -156,37 +207,66 @@
               <div class="viewfinder"></div>
             </div>
             <div class="small muted" style="text-align:center">Inquadra il QR della sessione in Lightning Terminal</div>
-            <div class="row"><div class="btn secondary">Annulla</div></div>
+            <div class="row"><div class="btn glass">Annulla</div></div>
           </div>
         </div>
       </div>
 
       <!-- home -->
       <div class="layer" id="home">
-        <div class="safe col" style="padding:24px">
-          <div class="header">
-            <div class="status"><div class="dot" id="home-dot"></div><span class="small muted" id="home-status"></span></div>
-            <span class="link">Scollega</span>
-          </div>
-          <div class="center" id="home-balance-area">
-            <div id="amount-wrap" style="display:flex;flex-direction:column;align-items:center">
-              <div class="balance" id="home-amount">—</div>
-              <div class="body muted" id="home-unit">sat</div>
+        <div id="ambient"></div>
+        <div id="refresh"></div>
+        <div class="safe">
+          <div id="home-scroll">
+            <div class="header" style="padding:0 8px">
+              <div class="pill glass" id="home-pill"><div class="dot" id="home-dot"></div><span id="home-status"></span></div>
+              <div class="pill glass">Scollega</div>
+            </div>
+            <div class="center" style="gap:0">
+              <div id="bal-press" style="margin-top:32px">
+                <div id="bubble" class="glass" style="position:relative">
+                  <div class="bal-in" id="bal-in"><div class="amt" id="amt"></div><div class="cap2" id="cap"></div></div>
+                </div>
+              </div>
+              <div style="height:32px"></div>
             </div>
           </div>
-          <div style="display:flex;gap:12px;align-items:center">
-            <div class="btn secondary" id="home-receive">Ricevi</div>
-            <div class="iconbtn" id="home-scan">{{QRICON}}</div>
-            <div class="btn primary" id="home-send">Invia</div>
+          <div id="bar" class="glass">
+            <div class="oval" id="home-receive">{{ARROW_IN}}<span>Ricevi</span></div>
+            <div class="round" id="home-qr">{{QRICON}}</div>
+            <div class="oval amber" id="home-send">{{ARROW_OUT}}<span>Invia</span></div>
+          </div>
+          <div id="qr-backdrop"></div>
+          <div id="qr-bubble" class="glass">
+            <div id="qr-content">
+              <div id="qr-frame">{{QR_MINE}}</div>
+              <div style="display:flex;gap:8px">
+                <div class="qract" style="color:#FF453A">Rimuovi</div>
+                <div class="qract">Cambia</div>
+                <div class="qract" id="qr-close">Chiudi</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- invia -->
       <div class="layer" id="send">
-        <div class="safe col" style="padding:24px;gap:20px">
-          <div class="header"><div class="title">Invia</div><span class="link">Chiudi</span></div>
+        <div class="safe col" id="send-safe" style="padding:24px 24px 16px;gap:20px">
+          <div class="header"><div class="title">Invia</div><div class="pill glass">Chiudi</div></div>
           <div style="flex:1;position:relative">
+            <div class="sub" id="send-input" style="gap:16px">
+              <div class="stage">
+                <div class="top"></div>
+                <div class="main"><div class="field" style="height:100%"><span class="muted">Fattura Lightning o indirizzo nome@dominio</span><span id="caret-s" style="display:inline-block;width:2px;height:21px;background:#0A84FF;vertical-align:-4px;margin-left:1px"></span></div></div>
+                <div class="second chips">
+                  <div class="chip glass">{{PASTE}}</div>
+                  <div class="chip glass" id="send-cam">{{CAMERA}}</div>
+                </div>
+                <div class="bottom"></div>
+              </div>
+              <div class="row"><div class="btn primary disabled">Continua</div></div>
+            </div>
             <div class="sub" id="send-scan" style="gap:16px">
               <div class="camera" id="cam2">
                 <div class="qrcard" id="card2">
@@ -200,21 +280,21 @@
                 <div class="viewfinder"></div>
               </div>
               <div class="small muted" style="text-align:center" id="send-hint">Inquadra il QR di una fattura o di un indirizzo</div>
-              <div class="row"><div class="btn secondary">Annulla</div></div>
+              <div class="row"><div class="btn glass">Annulla</div></div>
             </div>
             <div class="sub" id="send-confirm" style="gap:16px">
               <div class="center">
-                <div class="balance" id="send-amount">21.000</div>
+                <div class="balance">21.000</div>
                 <div class="body muted">sat</div>
                 <div class="body" id="send-desc" style="margin-top:20px">Caffè e cornetto</div>
                 <div class="small muted" id="send-msg" style="margin-top:20px">Pagamento in corso…</div>
               </div>
-              <div id="toggle" style="display:flex;align-items:center;gap:12px;padding:14px;border-radius:14px;border:1.5px solid #262626;background:#0E0E0E">
+              <div class="field" id="toggle" style="display:flex;align-items:center;gap:12px;padding:14px">
                 <div style="flex:1;display:flex;flex-direction:column;gap:2px">
                   <div class="body">Pagamento grosso</div>
                   <div class="small muted">Tentativi fino a 5 minuti invece di 60 secondi</div>
                 </div>
-                <div style="width:51px;height:31px;border-radius:16px;background:#262626;position:relative">
+                <div style="width:51px;height:31px;border-radius:16px;background:#262626;position:relative;flex:none">
                   <div style="position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:14px;background:#fff"></div>
                 </div>
               </div>
@@ -222,6 +302,7 @@
             </div>
             <div class="sub" id="send-done" style="gap:16px">
               <div class="center">
+                <div class="badge glass" id="badge-s">{{CHECK}}</div>
                 <div class="title green">Pagato</div>
                 <div class="balance">21.000</div>
                 <div class="body muted">sat</div>
@@ -231,31 +312,40 @@
             </div>
           </div>
         </div>
+        <div class="kb" id="kb-send">
+          <div class="qw">{{ROW1}}</div>
+          <div class="qw">{{ROW2}}</div>
+          <div class="qw"><div class="sp wide">⇧</div>{{ROW3}}<div class="sp wide">⌫</div></div>
+          <div class="qw"><div class="sp wide">123</div><div class="sp" style="width:130px;font-size:15px">spazio</div><div class="sp">@</div><div class="sp">.</div><div class="sp" style="width:76px;background:#0A84FF;font-size:15px">vai</div></div>
+        </div>
       </div>
 
       <!-- ricevi -->
       <div class="layer" id="receive">
-        <div class="safe col" id="rec-safe" style="padding:24px;gap:20px">
-          <div class="header"><div class="title">Ricevi</div><span class="link">Chiudi</span></div>
+        <div class="safe col" id="rec-safe" style="padding:24px 24px 16px;gap:20px">
+          <div class="header"><div class="title">Ricevi</div><div class="pill glass">Chiudi</div></div>
           <div style="flex:1;position:relative">
-            <div class="sub" id="rec-amount" style="align-items:center;justify-content:center;gap:2px">
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;align-self:stretch">
-                <div class="balance" style="display:flex;align-items:center"><span id="rec-digits"></span><span id="caret" style="display:inline-block;width:3px;height:54px;background:#F7931A;margin-left:2px"></span></div>
-                <div class="body muted">sat</div>
-                <div class="input" style="align-self:stretch;margin-top:24px;height:52px;padding:0 16px;display:flex;align-items:center"><span class="muted">Descrizione (facoltativa)</span></div>
+            <div class="sub" id="rec-amount" style="gap:16px">
+              <div class="stage">
+                <div class="top"></div>
+                <div class="main" style="align-items:center;gap:2px">
+                  <div class="balance" style="display:flex;align-items:center"><span id="rec-digits"></span><span id="caret" style="display:inline-block;width:3px;height:54px;background:#F7931A;margin-left:2px"></span></div>
+                  <div class="body muted">sat</div>
+                </div>
+                <div class="second"><div class="field" style="flex:1;display:flex;align-items:center;padding:0 16px"><span class="muted">Descrizione (facoltativa)</span></div></div>
+                <div class="bottom"></div>
               </div>
-              <div class="row" style="margin-top:20px"><div class="btn primary" id="rec-create"><span>Crea richiesta</span></div></div>
+              <div class="row"><div class="btn primary" id="rec-create"><span>Crea richiesta</span></div></div>
             </div>
             <div class="sub" id="rec-qr" style="align-items:center;justify-content:center;gap:2px">
-              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-                <div style="padding:16px;background:#fff;border-radius:20px">{{QR_INV}}</div>
-                <div class="title" style="margin-top:20px">5.000 sat</div>
-                <div class="small muted">In attesa del pagamento</div>
-              </div>
-              <div class="row"><div class="btn secondary">Copia fattura</div></div>
+              <div style="padding:16px;background:#fff;border-radius:28px">{{QR_INV}}</div>
+              <div class="title" style="margin-top:20px">5.000 sat</div>
+              <div class="small muted">In attesa del pagamento</div>
+              <div class="row" style="margin-top:auto"><div class="btn glass">Copia fattura</div></div>
             </div>
             <div class="sub" id="rec-paid" style="gap:2px">
               <div class="center">
+                <div class="badge glass" id="badge-r">{{CHECK}}</div>
                 <div class="title green">Ricevuti</div>
                 <div class="balance">5.000</div>
                 <div class="body muted">sat</div>
@@ -264,7 +354,7 @@
             </div>
           </div>
         </div>
-        <div id="keyboard">
+        <div class="kb" id="kb-rec">
           <div class="keys">
             <div class="key" id="k1">1</div><div class="key" id="k2">2<small>ABC</small></div><div class="key" id="k3">3<small>DEF</small></div>
             <div class="key" id="k4">4<small>GHI</small></div><div class="key" id="k5">5<small>JKL</small></div><div class="key" id="k6">6<small>MNO</small></div>
@@ -278,7 +368,7 @@
       <div class="layer" id="lock">
         <img src="{{LOGO}}" style="position:absolute;left:95px;top:322px;width:200px;height:200px">
         <div style="position:absolute;left:0;right:0;top:530px;text-align:center;font-size:34px;font-weight:700">Lampo</div>
-        <div style="position:absolute;left:24px;right:24px;bottom:90px" class="row" id="lock-btn"><div class="btn secondary">Sblocca con Face ID</div></div>
+        <div style="position:absolute;left:24px;right:24px;bottom:90px" class="row" id="lock-btn"><div class="btn glass">Sblocca con Face ID</div></div>
       </div>
       <div id="faceid">
         <svg id="face-glyph" width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -311,30 +401,40 @@
     <div class="cap" id="c2">
       <div class="step">2 · Balance</div>
       <h1>Your balance,<br>at a glance.</h1>
-      <p>Tap it to switch between <b>sats</b> and <b>euros</b>.</p>
+      <p>Tap it: <b>sats</b> → <b>euros</b> → <b>hidden</b>. Hidden stays hidden, even after a restart.</p>
+    </div>
+    <div class="cap" id="c2b">
+      <div class="step">2 · Balance</div>
+      <h1>Pull to refresh.</h1>
+      <p>If the node is slow to answer, Lampo <b>reconnects</b> on its own.</p>
+    </div>
+    <div class="cap" id="c2c">
+      <div class="step">3 · Your QR</div>
+      <h1>Your QR,<br>one tap away.</h1>
+      <p>Keep the QR of your <b>Lightning Address</b> in the app, ready to show.</p>
     </div>
     <div class="cap" id="c3">
-      <div class="step">3 · Pay</div>
+      <div class="step">4 · Pay</div>
       <h1>Scan and pay.</h1>
-      <p>Tap the QR button and scan an <b>invoice</b>, a <b>Lightning Address</b> or an <b>LNURL</b>. Check the amount, then pay.</p>
+      <p>Tap <b>Invia</b>, then scan or paste an <b>invoice</b>, a <b>Lightning Address</b> or an <b>LNURL</b>. Check the amount, then pay.</p>
     </div>
     <div class="cap" id="c3b">
-      <div class="step">3 · Pay</div>
+      <div class="step">4 · Pay</div>
       <h1>Paid.</h1>
       <p>The routing fee is shown after <b>every</b> payment.</p>
     </div>
     <div class="cap" id="c4">
-      <div class="step">4 · Receive</div>
+      <div class="step">5 · Receive</div>
       <h1>Type an amount,<br>show the QR.</h1>
       <p>Lampo creates the invoice on your node and waits for the payment.</p>
     </div>
     <div class="cap" id="c4b">
-      <div class="step">4 · Receive</div>
+      <div class="step">5 · Receive</div>
       <h1>Received.</h1>
       <p>You see it the moment the invoice is settled.</p>
     </div>
     <div class="cap" id="c5">
-      <div class="step">5 · Locked</div>
+      <div class="step">6 · Locked</div>
       <h1>Opens with<br>Face ID.</h1>
       <p>Every time you come back: Face ID, fingerprint or your phone passcode. Keys stay in the <b>Keychain</b> / Android encrypted storage.</p>
     </div>
@@ -345,7 +445,7 @@
       <div class="url">github.com/Ramen-coding/lampo</div>
     </div>
   </div>
-  <div id="dots"><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div></div>
+  <div id="dots"><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div><div><span></span></div></div>
 </div>
 
 <script>
@@ -353,8 +453,11 @@ const $ = id => document.getElementById(id);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const prog = (t, a, b) => clamp((t - a) / (b - a));
 const outCubic = x => 1 - Math.pow(1 - x, 3);
+const outQuart = x => 1 - Math.pow(1 - x, 4);
 const inOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const inQuad = x => x * x;
+// molla smorzata 0 → 1 con un piccolo rimbalzo (a = secondi dall'inizio)
+const spring = (a, k = 7, w = 11) => a <= 0 ? 0 : 1 - Math.exp(-k * a) * Math.cos(w * a);
 const fmt = n => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 const show = (id, v) => { $(id).style.display = v ? '' : 'none'; };
 const op = (id, v) => { $(id).style.opacity = v; };
@@ -373,25 +476,43 @@ function label(el, text) { if (el.dataset.sp || el.textContent !== text) { el.in
 // ---------------- timeline ----------------
 const T = {
   pair: 3.0, camTap: 4.4, scan: 4.7, scanned: 6.7, homeIn: 8.7, balance: 9.1,
-  eurTap: 10.8, satTap: 12.8,
-  qrTap: 14.4, sendPush: 14.6, reading: 16.4, confirm: 17.0, payTap: 18.7, done: 20.6, fattoTap: 22.4, sendPop: 22.6,
-  recTap: 24.6, recPush: 24.8, keys: [25.9, 26.3, 26.7, 27.1], createTap: 27.9, qrShow: 28.5, paid: 31.6, recFatto: 33.2, recPop: 33.4,
-  bg: 34.7, lockIn: 35.1, faceOk: 36.7, unlock: 37.4, outro: 39.4, end: 43.5,
+  eurTap: 10.6, hideTap: 12.0, satTap: 13.4,
+  pull: 14.9, release: 15.6, refreshed: 16.7,
+  qrTap: 18.6, qrClose: 21.2,
+  sendTap: 22.6, sendPush: 22.8, camTap2: 24.1, reading: 25.9, confirm: 26.5, payTap: 28.1, done: 29.9, fattoTap: 31.7, sendPop: 31.9,
+  recTap: 33.7, recPush: 33.9, keys: [35.0, 35.4, 35.8, 36.2], createTap: 37.0, qrShow: 37.6, paid: 40.5, recFatto: 42.1, recPop: 42.3,
+  bg: 43.7, lockIn: 44.1, faceOk: 45.7, unlock: 46.4, outro: 48.3, end: 52.5,
 };
-const PUSH = 0.38;
+const FADE = 0.14;   // Invia e Ricevi compaiono sul posto
+const MORPH = 0.16;  // cambio sat / € / nascosto
 const PHRASE = 'frost minute ocean velvet ladder humble cabin ripple orbit lantern';
 const PRICE = 95000; // €/BTC, solo per la demo
+const SAT0 = 1234567, IN1 = 15433, OUT = 21006, IN2 = 5000;
 
 const taps = [
-  [T.camTap, 'pair-cam'], [T.eurTap, 'home-amount'], [T.satTap, 'home-amount'], [T.qrTap, 'home-scan'],
-  [T.payTap, 'pay-btn'], [T.fattoTap, 'send-fatto'], [T.recTap, 'home-receive'],
+  [T.camTap, 'pair-cam'], [T.eurTap, 'bal-press'], [T.hideTap, 'bal-press'], [T.satTap, 'bal-press'],
+  [T.qrTap, 'home-qr'], [T.qrClose, 'qr-close'],
+  [T.sendTap, 'home-send'], [T.camTap2, 'send-cam'], [T.payTap, 'pay-btn'], [T.fattoTap, 'send-fatto'], [T.recTap, 'home-receive'],
   [T.keys[0], 'k5'], [T.keys[1], 'k0'], [T.keys[2], 'k0'], [T.keys[3], 'k0'],
   [T.createTap, 'rec-create'], [T.recFatto, 'rec-fatto'],
 ];
+// i comandi "cedono" sotto il dito
+const pressable = ['pair-cam', 'bal-press', 'home-qr', 'qr-close', 'home-send', 'send-cam', 'pay-btn', 'send-fatto', 'home-receive', 'rec-create', 'rec-fatto'];
 
 function rectOf(id) {
   const r = $(id).getBoundingClientRect(), s = $('screen').getBoundingClientRect(), k = s.width / 390;
   return {x: (r.left + r.width / 2 - s.left) / k, y: (r.top + r.height / 2 - s.top) / k};
+}
+
+// saldo nel tempo: ogni variazione "conta" fino al nuovo valore in 0,32 s
+const countUp = (t, t0, d) => d * outCubic(prog(t, t0, t0 + 0.32));
+function satAt(t) {
+  return SAT0 + countUp(t, T.refreshed, IN1) - countUp(t, T.sendPop + 0.3, OUT) + countUp(t, T.recPop + 0.3, IN2);
+}
+function amountText(unit, sat) {
+  if (unit === 'hidden') return '******';
+  if (unit === 'eur') { const [i, d] = ((sat / 1e8) * PRICE).toFixed(2).split('.'); return fmt(+i) + ',' + d; }
+  return fmt(sat);
 }
 
 function render(t) {
@@ -412,7 +533,6 @@ function render(t) {
   op('pair-busy', filled ? 1 : 0);
   $('pair-btn').classList.toggle('disabled', true);
   if (filled) spinner($('pair-btn'), t, '#000'); else label($('pair-btn'), 'Collega nodo');
-  // QR che entra nel mirino
   {
     const p = inOut(prog(t, T.scan + 0.2, T.scanned - 0.5));
     const wob = Math.sin(t * 3.1) * 3 * (1 - p * 0.6);
@@ -422,58 +542,78 @@ function render(t) {
   // ---- home ----
   show('home', t >= T.homeIn);
   op('home', prog(t, T.homeIn, T.homeIn + 0.3));
-  // saldo e unità
-  let sat = 1234567;
-  if (t >= T.done) sat -= 21006;
-  if (t >= T.paid) sat += 5000;
-  const online = !(t >= T.lockIn && t < T.unlock + 0.6) || t >= T.unlock + 0.6;
   const linking = t >= T.lockIn && t < T.faceOk;
   $('home-dot').style.background = linking ? '#F7931A' : '#30D158';
+  $('home-dot').style.opacity = linking ? 0.65 + 0.35 * Math.cos(t * Math.PI / 0.6) : 1;
   $('home-status').textContent = linking ? 'Collegamento al nodo…' : 'Nodo collegato';
-  // cambio unità: fade 1 visibile, 0 uscita (su), 2 ingresso (giù)
-  function unitPhase(tap) { // restituisce [fade, cambiata]
-    if (t < tap) return [1, false];
-    const a = t - tap;
-    if (a < 0.14) return [1 - inQuad(a / 0.14), false];
-    if (a < 0.40) return [2 - outCubic((a - 0.14) / 0.26), true];
-    return [1, true];
-  }
-  let unit = 'sat', fade = 1;
-  const [f1, c1] = unitPhase(T.eurTap), [f2, c2] = unitPhase(T.satTap);
-  if (t < T.satTap) { fade = f1; unit = c1 ? 'eur' : 'sat'; } else { fade = f2; unit = c2 ? 'sat' : 'eur'; }
-  const o = fade <= 1 ? fade : 2 - fade;
-  const ty = fade <= 1 ? -14 * (1 - fade) : 14 * (fade - 1);
-  const sc = 0.94 + 0.06 * o;
-  $('amount-wrap').style.opacity = o;
-  $('amount-wrap').style.transform = `translateY(${ty}px) scale(${sc})`;
-  const eur = (sat / 1e8) * PRICE;
-  $('home-amount').textContent = t < T.balance ? '—' : unit === 'eur'
-    ? (n => { const [i, d] = n.toFixed(2).split('.'); return fmt(+i) + ',' + d; })(eur) : fmt(sat);
-  $('home-unit').textContent = unit === 'eur' ? '€' : 'sat';
+  // luce d'ambiente: solo dietro la barra, segue lo stato del nodo
+  $('ambient').style.opacity = linking ? 0.55 : 1;
 
-  // ---- navigazione push/pop ----
-  function nav(push, pop) {
-    if (t < push) return 1;
-    if (t < push + PUSH) return 1 - outCubic(prog(t, push, push + PUSH));
-    if (t < pop) return 0;
-    return outCubic(prog(t, pop, pop + PUSH));
+  // saldo: sat → € → nascosto → sat; la bolla cambia forma attorno alla cifra nuova
+  const sat = satAt(t);
+  const units = [[-1, 'sat'], [T.eurTap, 'eur'], [T.hideTap, 'hidden'], [T.satTap, 'sat']];
+  let k = 0;
+  for (let i = 0; i < units.length; i++) if (t >= units[i][0]) k = i;
+  const [tk, uNew] = units[k], uOld = k > 0 ? units[k - 1][1] : uNew;
+  const m = k === 0 ? 1 : inOut(prog(t - tk, 0, MORPH));
+  const fill = unit => {
+    $('amt').textContent = t < T.balance ? '—' : amountText(unit, sat);
+    $('amt').style.transform = unit === 'hidden' ? 'translateY(12px)' : '';
+    $('cap').textContent = unit === 'eur' ? '€' : unit === 'sat' ? 'sat' : '';
+    show('cap', unit !== 'hidden');
+    return [$('bal-in').offsetWidth, $('bal-in').offsetHeight];
+  };
+  const [w0, h0] = fill(uOld), [w1, h1] = fill(uNew);
+  $('bubble').style.width = (w0 + (w1 - w0) * m) + 'px';
+  $('bubble').style.height = (h0 + (h1 - h0) * m) + 'px';
+  $('bal-in').style.left = ((w0 + (w1 - w0) * m) - w1) / 2 + 'px';
+  op('bal-in', k === 0 ? 1 : prog(t - tk, 0, MORPH));
+
+  // trascina giù per aggiornare
+  {
+    let pull = 0;
+    const drag = prog(t, T.pull + 0.2, T.release);
+    if (t < T.release) pull = 95 * outCubic(drag);
+    else if (t < T.refreshed) pull = 60 + 35 * Math.exp(-(t - T.release) * 9);
+    else pull = 60 * (1 - outCubic(prog(t, T.refreshed, T.refreshed + 0.35)));
+    $('home-scroll').style.transform = `translateY(${pull}px)`;
+    const sp = $('refresh');
+    if (!sp.dataset.sp) { sp.innerHTML = SPINNER('#F7931A'); sp.dataset.sp = 1; }
+    sp.style.opacity = clamp(pull / 50);
+    sp.style.top = (54 + Math.max(8, pull / 2 - 14)) + 'px';
+    sp.firstChild.style.transform = t >= T.release ? `rotate(${Math.floor(t * 12) * 45}deg)` : `rotate(${pull * 3}deg)`;
   }
+
+  // QR personale: la bolla di vetro nasce dal tasto QR
+  {
+    const opening = t >= T.qrTap + 0.05 && t < T.qrClose + 0.05;
+    let p = 0;
+    if (opening) p = outCubic(prog(t, T.qrTap + 0.05, T.qrTap + 0.22));
+    else if (t >= T.qrClose + 0.05) p = 1 - inQuad(prog(t, T.qrClose + 0.05, T.qrClose + 0.16));
+    const vis = p > 0.001;
+    show('qr-bubble', vis); show('qr-backdrop', vis);
+    const sc = 0.15 + 0.85 * p;
+    $('qr-bubble').style.transform = `translateY(${179 * (1 - Math.min(1, p))}px) scale(${sc})`;
+    op('qr-backdrop', clamp(p));
+    op('qr-content', opening ? prog(p, 0.45, 0.95) : clamp((p - 0.4) / 0.6));
+  }
+
+  // ---- Invia e Ricevi: dissolvenza breve sul posto, niente scorrimento ----
+  const nav = (push, pop) => Math.min(prog(t, push, push + FADE), 1 - prog(t, pop, pop + FADE));
   const ns = nav(T.sendPush, T.sendPop), nr = nav(T.recPush, T.recPop);
-  const top = Math.min(ns, nr); // 0 = schermata sopra la home
-  $('send').style.transform = `translateX(${390 * ns}px)`;
-  $('receive').style.transform = `translateX(${390 * nr}px)`;
-  show('send', ns < 1); show('receive', nr < 1);
-  $('home').style.transform = `translateX(${-117 * (1 - top)}px)`;
-  $('home').style.filter = `brightness(${1 - 0.3 * (1 - top)})`;
+  op('send', ns); op('receive', nr);
+  show('send', ns > 0); show('receive', nr > 0);
 
   // ---- invia ----
-  const sScan = t < T.confirm, sDone = t >= T.done;
-  op('send-scan', sScan ? 1 : 0);
-  op('send-confirm', !sScan && !sDone ? prog(t, T.confirm, T.confirm + 0.15) : 0);
+  const sInput = t < T.camTap2 + 0.15, sScan = t >= T.camTap2 + 0.15 && t < T.confirm, sDone = t >= T.done;
+  op('send-input', sInput ? 1 : 0);
+  op('send-scan', sScan ? prog(t, T.camTap2 + 0.15, T.camTap2 + 0.3) : 0);
+  op('send-confirm', !sInput && !sScan && !sDone ? prog(t, T.confirm, T.confirm + 0.15) : 0);
   op('send-done', sDone ? prog(t, T.done, T.done + 0.15) : 0);
+  $('caret-s').style.opacity = Math.floor(t * 2) % 2 === 0 ? 1 : 0;
   $('send-hint').textContent = t >= T.reading ? 'Lettura in corso…' : 'Inquadra il QR di una fattura o di un indirizzo';
   {
-    const p = inOut(prog(t, T.sendPush + 0.3, T.reading - 0.2));
+    const p = inOut(prog(t, T.camTap2 + 0.4, T.reading - 0.2));
     const wob = Math.sin(t * 2.7) * 3 * (1 - p * 0.6);
     $('card2').style.transform = `translate(${-80 * (1 - p) + wob}px, ${190 * (1 - p) + wob}px) rotate(${-10 * (1 - p)}deg) scale(${0.72 + 0.28 * p})`;
   }
@@ -482,27 +622,34 @@ function render(t) {
   op('send-msg', paying ? 1 : 0);
   op('toggle', paying ? 0 : 1);
   if (paying) spinner($('pay-btn'), t, '#000'); else label($('pay-btn'), 'Paga');
+  $('badge-s').style.transform = `scale(${spring(t - T.done, 14, 18)})`;
+  // tastiera di Invia: si apre da sola, si chiude quando parte la fotocamera.
+  // Il suo spazio è riservato da subito: il contenuto non si sposta.
+  const kbsIn = outCubic(prog(t, T.sendPush, T.sendPush + 0.3));
+  const kbsOut = outCubic(prog(t, T.camTap2 + 0.05, T.camTap2 + 0.35));
+  const kbs = kbsIn * (1 - kbsOut);
+  $('kb-send').style.transform = `translateY(${291 * (1 - kbs)}px)`;
+  $('send-safe').style.bottom = (t < T.camTap2 + 0.15 ? 291 : 34) + 'px';
 
   // ---- ricevi ----
   const rQr = t >= T.qrShow, rPaid = t >= T.paid;
   op('rec-amount', !rQr ? 1 : 0);
   op('rec-qr', rQr && !rPaid ? prog(t, T.qrShow, T.qrShow + 0.15) : 0);
   op('rec-paid', rPaid ? prog(t, T.paid, T.paid + 0.2) : 0);
+  $('badge-r').style.transform = `scale(${spring(t - T.paid, 14, 18)})`;
   const typed = T.keys.filter(k => t >= k + 0.05).length;
   const digits = ['', '5', '50', '500', '5000'][typed];
   $('rec-digits').innerHTML = digits ? fmt(+digits) : '<span class="muted">0</span>';
   $('caret').style.opacity = (Math.floor(t * 2) % 2 === 0 && !rQr) ? 1 : 0;
-  // con il caret prima del placeholder come in iOS
   if (!digits) $('rec-digits').parentNode.insertBefore($('caret'), $('rec-digits'));
   else $('rec-digits').parentNode.appendChild($('caret'));
-  $('rec-create').classList.toggle('disabled', !digits);
+  $('rec-create').classList.toggle('disabled', !digits || (t >= T.createTap + 0.1 && !rQr));
   if (t >= T.createTap + 0.1 && !rQr) spinner($('rec-create'), t, '#000'); else label($('rec-create'), 'Crea richiesta');
-  // tastiera: visibile finché non compare il QR
-  const kbIn = outCubic(prog(t, T.recPush + 0.1, T.recPush + 0.45));
-  const kbOut = outCubic(prog(t, T.qrShow - 0.1, T.qrShow + 0.25));
+  const kbIn = outCubic(prog(t, T.recPush, T.recPush + 0.3));
+  const kbOut = outCubic(prog(t, T.qrShow - 0.1, T.qrShow + 0.2));
   const kb = kbIn * (1 - kbOut);
-  $('keyboard').style.transform = `translateY(${291 * (1 - kb)}px)`;
-  $('rec-safe').style.bottom = (34 + (291 - 34) * kb) + 'px';
+  $('kb-rec').style.transform = `translateY(${291 * (1 - kb)}px)`;
+  $('rec-safe').style.bottom = (t < T.qrShow ? 291 : 34) + 'px';
   for (const k of ['k5', 'k0']) $(k).classList.remove('pressed');
   T.keys.forEach((k, i) => { if (t >= k && t < k + 0.12) $(i === 0 ? 'k5' : 'k0').classList.add('pressed'); });
 
@@ -511,9 +658,7 @@ function render(t) {
   const back = prog(t, T.lockIn, T.lockIn + 0.35);
   const appScale = t < T.lockIn ? 1 - 0.12 * inOut(bgP) : 0.88 + 0.12 * outCubic(back);
   const appOp = t < T.lockIn ? 1 - bgP : 1;
-  for (const id of ['home']) {
-    if (t >= T.bg) { $(id).style.transform = `scale(${appScale})`; $(id).style.opacity = appOp; $(id).style.borderRadius = '50px'; }
-  }
+  if (t >= T.bg) { $('home').style.transform = `scale(${appScale})`; $('home').style.opacity = appOp; $('home').style.borderRadius = '50px'; }
   const lockV = t >= T.lockIn && t < T.unlock + 0.3;
   show('lock', lockV);
   $('lock').style.transform = `scale(${0.88 + 0.12 * outCubic(back)})`;
@@ -527,6 +672,7 @@ function render(t) {
 
   // ---- dito ----
   let fv2 = 0, fx = 0, fy = 0, ring = -1;
+  for (const id of pressable) $(id).style.scale = '';
   for (const [tt, id] of taps) {
     const a = t - tt;
     if (a > -0.35 && a < 0.4) {
@@ -534,14 +680,26 @@ function render(t) {
       fv2 = a < 0 ? prog(a, -0.35, -0.15) : 1 - prog(a, 0.15, 0.4);
       if (a >= 0) ring = a;
     }
+    if (pressable.includes(id) && a > -0.03 && a < 0.25) {
+      const d = a < 0.1 ? prog(a, -0.03, 0.05) : 1 - prog(a, 0.1, 0.25);
+      $(id).style.scale = 1 - 0.04 * d;
+    }
+  }
+  // trascinamento per aggiornare: il dito scende dal centro dello schermo
+  if (t > T.pull - 0.3 && t < T.release + 0.35) {
+    const d = outCubic(prog(t, T.pull + 0.2, T.release));
+    fx = 195; fy = 300 + 150 * d;
+    fv2 = t < T.release ? prog(t, T.pull - 0.3, T.pull) : 1 - prog(t, T.release, T.release + 0.3);
+    ring = t >= T.pull && t < T.pull + 0.4 ? t - T.pull : -1;
   }
   $('finger').style.cssText += `;left:${fx}px;top:${fy}px;opacity:${fv2};transform:scale(${ring >= 0 && ring < 0.12 ? 0.85 : 1})`;
   const rp = ring >= 0 ? prog(ring, 0, 0.4) : 1;
   $('ring').style.cssText += `;left:${fx}px;top:${fy}px;opacity:${ring >= 0 ? 1 - rp : 0};transform:scale(${1 + rp * 1.2})`;
 
   // ---- didascalie ----
-  const caps = [['c0', 0, T.pair], ['c1', T.pair, T.homeIn], ['c2', T.homeIn, T.qrTap], ['c3', T.qrTap, T.done],
-    ['c3b', T.done, T.recTap], ['c4', T.recTap, T.paid], ['c4b', T.paid, T.bg], ['c5', T.bg, T.outro], ['c6', T.outro, 99]];
+  const caps = [['c0', 0, T.pair], ['c1', T.pair, T.homeIn], ['c2', T.homeIn, T.pull - 0.4], ['c2b', T.pull - 0.4, T.qrTap - 0.4],
+    ['c2c', T.qrTap - 0.4, T.sendTap], ['c3', T.sendTap, T.done], ['c3b', T.done, T.recTap], ['c4', T.recTap, T.paid],
+    ['c4b', T.paid, T.bg], ['c5', T.bg, T.outro], ['c6', T.outro, 99]];
   for (const [id, a, b] of caps) {
     const vIn = a === 0 ? prog(t, 0.2, 0.8) : prog(t, a + 0.15, a + 0.55);
     const vOut = 1 - prog(t, b - 0.05, b + 0.15);
@@ -550,10 +708,9 @@ function render(t) {
     $(id).style.transform = `translateY(calc(-50% + ${(1 - outCubic(vIn)) * 18}px))`;
     show(id, v > 0);
   }
-  const steps = [[T.pair, T.homeIn], [T.homeIn, T.qrTap], [T.qrTap, T.recTap], [T.recTap, T.bg], [T.bg, T.outro]];
+  const steps = [[T.pair, T.homeIn], [T.homeIn, T.qrTap - 0.4], [T.qrTap - 0.4, T.sendTap], [T.sendTap, T.recTap], [T.recTap, T.bg], [T.bg, T.outro]];
   [...document.querySelectorAll('#dots span')].forEach((s, i) => s.style.width = (prog(t, ...steps[i]) * 100) + '%');
   op('dots', Math.min(prog(t, T.pair, T.pair + 0.4), 1 - prog(t, T.outro, T.outro + 0.4)));
-  // dissolvenza finale
   $('stage').style.opacity = 1 - prog(t, T.end - 0.6, T.end);
 }
 window.render = render;

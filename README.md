@@ -10,8 +10,8 @@ It is **not a node manager**. It does three things: show your balance, send and 
 For channels and everything else, use your node's own tools.
 
 <p align="center">
-  <a href="docs/lampo-demo.mp4"><img src="docs/lampo-demo.gif" alt="Lampo demo: pair with a QR, check the balance, pay a QR invoice, receive, unlock with Face ID" width="800"></a>
-  <br><sub>Pair, balance, pay, receive, Face ID in 40 seconds. <a href="docs/lampo-demo.mp4">Full-quality video (MP4)</a>.</sub>
+  <a href="docs/lampo-demo.mp4"><img src="docs/lampo-demo.gif" alt="Lampo demo: pair with a QR, check and hide the balance, pull to refresh, show your QR, pay a QR invoice, receive, unlock with Face ID" width="800"></a>
+  <br><sub>Pair, balance, your QR, pay, receive, Face ID in 50 seconds. <a href="docs/lampo-demo.mp4">Full-quality video (MP4)</a>.</sub>
 </p>
 
 > **Beta.** Lampo is a personal project that does this one job. It doesn't aim to be the
