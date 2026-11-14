@@ -9,7 +9,7 @@ import * as node from './src/lnc/node';
 import {clearCache, readCachedBalance, writeCachedBalance} from './src/cache';
 import {APP_NAME, BrandMark, LinkState, colors} from './src/components/ui';
 import {Ambient} from './src/components/Ambient';
-import {loadKeyboardHeights} from './src/components/KeyboardFrame';
+import {loadKeyboardSpace} from './src/components/KeyboardFrame';
 import {PairScreen} from './src/screens/PairScreen';
 import {HomeScreen} from './src/screens/HomeScreen';
 import {SendScreen} from './src/screens/SendScreen';
@@ -151,7 +151,7 @@ export default function App() {
 
   // Avvio: mostra subito il saldo salvato, poi collega in background.
   useEffect(() => {
-    loadKeyboardHeights();
+    loadKeyboardSpace();
     (async () => {
       store.current = await SecureCredentialStore.load();
       if (!store.current.isPaired) {
