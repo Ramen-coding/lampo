@@ -3,7 +3,6 @@ import {
   Alert,
   Animated,
   LayoutAnimation,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -17,7 +16,9 @@ import {
   PillButton,
   QrIcon,
   StatusPill,
+  Tap,
   colors,
+  isAndroid,
   type,
 } from '../components/ui';
 import { Glass } from '../components/glass';
@@ -57,6 +58,8 @@ const REFRESH_MIN_MS = 350; // tempo minimo della rotellina
 /** La bolla del saldo: distanza dai bordi dello schermo e margine interno. */
 const BUBBLE_MARGIN = 16;
 const BUBBLE_PADDING = 26;
+/** Raggio della bolla: capsula su iOS, "extra large" Material 3 Expressive su Android. */
+const BUBBLE_RADIUS = isAndroid ? 36 : 40;
 
 /** Saldo nascosto: sempre la stessa lunghezza, così non lascia intuire la cifra. */
 const HIDDEN = '******';
@@ -262,7 +265,8 @@ export function HomeScreen(p: Props) {
         <View style={s.center}>
           {/* Tutto il saldo sta in una bolla di vetro: toccandola sat → euro → nascosto → sat… */}
           {unit === null ? null : (
-            <Pressable
+            <Tap
+              radius={BUBBLE_RADIUS}
               onPress={cycleUnit}
               accessibilityRole="button"
               accessibilityLabel={accessibilityLabel}
@@ -303,7 +307,7 @@ export function HomeScreen(p: Props) {
                   ) : null}
                 </Animated.View>
               </Glass>
-            </Pressable>
+            </Tap>
           )}
           {/* Spazio fisso: la nota compare senza spostare il saldo. */}
           <View style={s.note}>
@@ -320,12 +324,13 @@ export function HomeScreen(p: Props) {
       <Glass style={s.bar}>
         <BarButton
           label="Ricevi"
-          icon={<ArrowIcon direction="in" />}
+          icon={<ArrowIcon direction="in" color={colors.onFill} />}
           onPress={p.onReceive}
           disabled={offline}
         />
         {/* Il QR personale: non serve il nodo, quindi funziona anche offline. */}
-        <Pressable
+        <Tap
+          radius={28}
           accessibilityRole="button"
           accessibilityLabel={
             qr ? 'Mostra il mio QR' : 'Aggiungi un QR dalla galleria'
@@ -334,11 +339,11 @@ export function HomeScreen(p: Props) {
           hitSlop={8}
           style={({ pressed }) => [s.round, pressed && s.pressed]}
         >
-          <QrIcon />
-        </Pressable>
+          <QrIcon color={colors.onFill} />
+        </Tap>
         <BarButton
           label="Invia"
-          icon={<ArrowIcon direction="out" color={colors.bg} />}
+          icon={<ArrowIcon direction="out" color={colors.onAmber} />}
           onPress={p.onSend}
           disabled={offline}
           primary
@@ -372,7 +377,9 @@ function BarButton({
   primary?: boolean;
 }) {
   return (
-    <Pressable
+    <Tap
+      radius={28}
+      rippleColor={primary ? 'rgba(46,21,0,0.18)' : undefined}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
@@ -385,8 +392,8 @@ function BarButton({
       ]}
     >
       {icon}
-      <Text style={[s.ovalText, primary && { color: colors.bg }]}>{label}</Text>
-    </Pressable>
+      <Text style={[s.ovalText, { color: primary ? colors.onAmber : colors.onFill }]}>{label}</Text>
+    </Tap>
   );
 }
 
@@ -440,7 +447,7 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   balance: { marginTop: 32 },
   bubble: {
-    borderRadius: 40,
+    borderRadius: BUBBLE_RADIUS,
     paddingHorizontal: BUBBLE_PADDING,
     paddingTop: 14,
     paddingBottom: 16,

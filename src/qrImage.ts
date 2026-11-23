@@ -1,5 +1,6 @@
 import EncryptedStorage from 'react-native-encrypted-storage';
 import {launchImageLibrary} from 'react-native-image-picker';
+import {withoutLock} from './lockGuard';
 
 /**
  * Il QR personale mostrato dal tasto centrale della Home: un'immagine scelta
@@ -26,14 +27,16 @@ export async function readQrImage(): Promise<string | null> {
  * Risolve null se l'utente annulla; lancia un errore se l'immagine non si può leggere.
  */
 export async function pickQrImage(): Promise<string | null> {
-  const result = await launchImageLibrary({
+  const result = await withoutLock(() =>
+    launchImageLibrary({
     mediaType: 'photo',
     selectionLimit: 1,
     includeBase64: true,
     maxWidth: MAX_SIDE,
     maxHeight: MAX_SIDE,
     quality: 0.9,
-  });
+    }),
+  );
   if (result.didCancel) return null;
   const asset = result.assets?.[0];
   if (result.errorCode || !asset?.base64) {

@@ -15,6 +15,7 @@ import {HomeScreen} from './src/screens/HomeScreen';
 import {SendScreen} from './src/screens/SendScreen';
 import {ReceiveScreen} from './src/screens/ReceiveScreen';
 import {LockScreen} from './src/screens/LockScreen';
+import {isExpectedExit} from './src/lockGuard';
 
 /** Fase dell'app: decide quale gruppo di schermate esiste. */
 type Phase = 'boot' | 'pair' | 'paired';
@@ -32,6 +33,9 @@ const Stack = createNativeStackNavigator<Routes>();
 const RELOAD_TIMEOUT_MS = 6000;
 
 const formScreen = {animation: 'fade', animationDuration: 140} as const;
+
+/** Galleria o permesso fotocamera: oltre questo tempo fuori dall'app si richiede comunque lo sblocco. */
+const EXPECTED_EXIT_MAX_MS = 60_000;
 
 const navTheme = {
   ...DarkTheme,
@@ -177,6 +181,7 @@ export default function App() {
   // richiede il volto. "inactive" (es. il riquadro di Face ID) non blocca l'app:
   // solo il passaggio in background.
   const lastState = useRef<AppStateStatus>((AppState.currentState ?? 'active') as AppStateStatus);
+  const leftAt = useRef(0);
   useEffect(() => {
     const sub = AppState.addEventListener('change', state => {
       const prev = lastState.current;
@@ -187,6 +192,20 @@ export default function App() {
       // Android: il PIN del telefono si apre in una schermata di sistema separata e l'app
       // risulta "in background". Mentre il riquadro di sblocco è aperto non si riblocca.
       if (promptingRef.current) return;
+      // Galleria o permesso fotocamera aperti dall'app: si torna dove si era, senza impronta.
+      // Se però si resta fuori più di un minuto (es. si passa ad altro dalla galleria) si blocca.
+      if (isExpectedExit()) {
+        if (state === 'background') {
+          leftAt.current = Date.now();
+        } else if (state === 'active') {
+          ensureConnected();
+          if (Date.now() - leftAt.current > EXPECTED_EXIT_MAX_MS) {
+            setLocked(true);
+            unlock();
+          }
+        }
+        return;
+      }
       if (state === 'background') {
         setLocked(true);
       } else if (state === 'active' && prev === 'background') {

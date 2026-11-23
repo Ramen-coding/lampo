@@ -11,7 +11,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import {colors} from './ui';
+import {Tap, colors} from './ui';
 import {Glass} from './glass';
 
 /** Distanza dai bordi: la stessa della barra della Home, da cui la bolla nasce. */
@@ -143,14 +143,15 @@ export function QrBubble({
   );
 }
 
-function Action({label, color = colors.text, onPress}: {label: string; color?: string; onPress: () => void}) {
+function Action({label, color = colors.onFill, onPress}: {label: string; color?: string; onPress: () => void}) {
   return (
-    <Pressable
+    <Tap
+      radius={ACTIONS / 2}
       accessibilityRole="button"
       onPress={onPress}
       style={({pressed}) => [s.action, pressed && s.pressed]}>
       <Text style={[s.actionText, {color}]}>{label}</Text>
-    </Pressable>
+    </Tap>
   );
 }
 

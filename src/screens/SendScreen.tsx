@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {Pressable, StyleSheet, Switch, Text, TextInput, View} from 'react-native';
+import {StyleSheet, Switch, Text, TextInput, View} from 'react-native';
 import Clipboard from '@react-native-clipboard/clipboard';
 import {Scanner} from '../components/Scanner';
 import {KeyboardFrame, KeyboardKind} from '../components/KeyboardFrame';
@@ -12,7 +12,9 @@ import {
   ScreenHeader,
   Stage,
   SuccessBadge,
+  Tap,
   colors,
+  isAndroid,
   field,
   type,
 } from '../components/ui';
@@ -305,15 +307,21 @@ export function SendScreen({onClose, onPaid}: Props) {
 /** Interruttore "Pagamento grosso": più tempo a LND per frazionare e riprovare. */
 function BigToggle({value, onChange}: {value: boolean; onChange: (v: boolean) => void}) {
   return (
-    <Pressable style={s.toggle} onPress={() => onChange(!value)} accessibilityRole="switch">
+    <Tap radius={20} style={s.toggle} onPress={() => onChange(!value)} accessibilityRole="switch">
       <View style={s.toggleText}>
         <Text style={[type.body, {color: colors.text}]}>Pagamento grosso</Text>
         <Text style={[type.small, {color: colors.muted}]}>
           Tentativi fino a {Math.round(PAYMENT_TIMEOUT_S.big / 60)} minuti invece di {PAYMENT_TIMEOUT_S.normal} secondi
         </Text>
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{true: colors.amber, false: colors.line}} />
-    </Pressable>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{true: colors.amber, false: colors.line}}
+        // Android: pallino Material (scuro sull'arancio, chiaro quando è spento).
+        thumbColor={isAndroid ? (value ? colors.onAmber : colors.muted) : undefined}
+      />
+    </Tap>
   );
 }
 

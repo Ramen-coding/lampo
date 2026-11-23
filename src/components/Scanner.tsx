@@ -3,6 +3,7 @@ import {Linking, StyleSheet, Text, View} from 'react-native';
 import {Camera, useCameraDevice, useCameraPermission} from 'react-native-vision-camera';
 import {Button, TextLink, colors, type} from './ui';
 import {useQrOutput} from './useQrOutput';
+import {withoutLock} from '../lockGuard';
 
 /** Fotocamera a tutto schermo per leggere un QR (fatture e abbinamento). */
 export function Scanner({
@@ -20,7 +21,7 @@ export function Scanner({
   const {hasPermission, canRequestPermission, requestPermission} = useCameraPermission();
 
   useEffect(() => {
-    if (!hasPermission && canRequestPermission) requestPermission();
+    if (!hasPermission && canRequestPermission) withoutLock(requestPermission);
   }, [hasPermission, canRequestPermission, requestPermission]);
 
   const qrOutput = useQrOutput(onScanned);

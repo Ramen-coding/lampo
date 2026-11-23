@@ -4,15 +4,19 @@ import {
   Animated,
   Image,
   Pressable,
+  PressableProps,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ViewStyle,
   useWindowDimensions,
 } from 'react-native';
 import {formatSat} from '../cache';
 import Svg, {Circle, Path, Rect} from 'react-native-svg';
 import {Glass} from './glass';
+import {colors, isAndroid} from './theme';
 
 /** Nome mostrato nell'app (unico punto da cambiare quando scegliamo il nome). */
 export const APP_NAME = 'Lampo';
@@ -41,27 +45,46 @@ const brand = StyleSheet.create({
   name: {position: 'absolute', top: '50%', marginTop: 108, alignSelf: 'center', fontSize: 34, fontWeight: '700', color: '#FFFFFF'},
 });
 
-// Tema AMOLED: nero puro (pixel spenti sugli schermi OLED) e testo bianco.
-export const colors = {
-  bg: '#000000', // sfondo
-  panel: '#0E0E0E', // superfici (campi, pulsanti secondari)
-  line: '#262626', // bordi
-  fill: 'rgba(255,255,255,0.10)', // ovali dentro il vetro (Ricevi, QR)
-  field: 'rgba(255,255,255,0.06)', // campi di testo
-  hairline: 'rgba(255,255,255,0.14)',
-  text: '#FFFFFF',
-  muted: '#8E8E93',
-  amber: '#F7931A', // arancio bitcoin: solo per l'azione principale
-  green: '#30D158',
-  red: '#FF453A',
-};
+// Colori per piattaforma: vetro AMOLED su iOS, Material 3 su Android (vedi theme.ts).
+export {colors, isAndroid};
 
 export const type = {
-  balance: {fontSize: 56, fontWeight: '600' as const, letterSpacing: -1.5, fontVariant: ['tabular-nums' as const]},
+  balance: {
+    fontSize: 56,
+    fontWeight: '600' as const,
+    letterSpacing: -1.5,
+    fontVariant: ['tabular-nums' as const],
+    // Android: niente spazio extra sopra e sotto le cifre (taglierebbe i numeri grandi).
+    ...(isAndroid ? {includeFontPadding: false} : null),
+  },
   title: {fontSize: 22, fontWeight: '600' as const},
   body: {fontSize: 17},
   small: {fontSize: 14},
 };
+
+/**
+ * Pressable con il feedback giusto per piattaforma: su iOS si rimpicciolisce appena,
+ * su Android aggiunge l'onda Material (ripple) ritagliata sulla forma del pulsante.
+ * `radius` è il raggio della forma, serve ad Android per ritagliare l'onda.
+ */
+export function Tap({
+  radius,
+  rippleColor = colors.ripple,
+  style,
+  ...rest
+}: PressableProps & {radius: number; rippleColor?: string; style?: PressableProps['style']}) {
+  if (!isAndroid) return <Pressable style={style} {...rest} />;
+  return (
+    <Pressable
+      android_ripple={{color: rippleColor, foreground: true}}
+      style={state => [
+        {borderRadius: radius, overflow: 'hidden'} as StyleProp<ViewStyle>,
+        typeof style === 'function' ? style(state) : style,
+      ]}
+      {...rest}
+    />
+  );
+}
 
 type ButtonProps = {
   label: string;
@@ -74,25 +97,30 @@ type ButtonProps = {
 export function Button({label, onPress, variant = 'primary', disabled, loading}: ButtonProps) {
   const primary = variant === 'primary';
   const content = loading ? (
-    <ActivityIndicator color={primary ? colors.bg : colors.text} />
+    <ActivityIndicator color={primary ? colors.onAmber : colors.onFill} />
   ) : (
-    <Text style={[s.buttonText, {color: primary ? colors.bg : colors.text}]}>{label}</Text>
+    <Text style={[s.buttonText, {color: primary ? colors.onAmber : colors.onFill}]}>{label}</Text>
   );
   return (
-    <Pressable
+    <Tap
+      radius={29}
+      rippleColor={primary ? 'rgba(46,21,0,0.18)' : colors.ripple}
       accessibilityRole="button"
       onPress={onPress}
       disabled={disabled || loading}
       style={({pressed}) => [s.buttonWrap, (disabled || loading) && s.dimmed, pressed && s.pressed]}>
       {primary ? (
         <View style={[s.button, s.primary]}>{content}</View>
+      ) : isAndroid ? (
+        // Android: pulsante tonale Material (secondary container).
+        <View style={[s.button, s.tonal]}>{content}</View>
       ) : (
-        // Il pulsante secondario è una capsula di vetro.
+        // iOS: il pulsante secondario è una capsula di vetro.
         <Glass interactive style={s.button}>
           {content}
         </Glass>
       )}
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -107,11 +135,11 @@ export function TextLink({label, onPress}: {label: string; onPress: () => void})
 /** Pillola di vetro con una parola: i comandi in alto ("Chiudi", "Scollega"). */
 export function PillButton({label, onPress}: {label: string; onPress: () => void}) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} hitSlop={10} style={({pressed}) => pressed && s.pressed}>
-      <Glass interactive style={s.pill}>
-        <Text style={s.pillText}>{label}</Text>
+    <Tap radius={18} accessibilityRole="button" onPress={onPress} hitSlop={10} style={({pressed}) => pressed && s.pressed}>
+      <Glass interactive style={[s.pill, isAndroid && s.tonal]}>
+        <Text style={[s.pillText, {color: colors.onFill}]}>{label}</Text>
       </Glass>
-    </Pressable>
+    </Tap>
   );
 }
 
@@ -183,6 +211,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 20,
   },
   primary: {backgroundColor: colors.amber},
+  tonal: {backgroundColor: colors.fill},
   buttonText: {fontSize: 18, fontWeight: '600'},
   dimmed: {opacity: 0.4},
   pressed: {transform: [{scale: 0.97}]},
@@ -193,7 +222,7 @@ const s = StyleSheet.create({
   status: {flexDirection: 'row', alignItems: 'center', gap: 8},
   dot: {width: 8, height: 8, borderRadius: 4},
   chip: {width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center'},
-  amountInput: {color: colors.text, textAlign: 'center', minWidth: 120, padding: 0},
+  amountInput: {color: colors.text, textAlign: 'center', alignSelf: 'stretch', padding: 0, textAlignVertical: 'center'},
   stage: {flex: 1, alignSelf: 'stretch'},
   stageTop: {flex: 2, justifyContent: 'flex-end'},
   stageError: {paddingBottom: 10},
@@ -345,34 +374,51 @@ export function ChipButton({
   disabled?: boolean;
 }) {
   return (
-    <Pressable
+    <Tap
+      radius={26}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       disabled={disabled}
       hitSlop={6}
       style={({pressed}) => [pressed && s.pressed, disabled && s.dimmed]}>
-      <Glass interactive style={s.chip}>
+      <Glass interactive style={[s.chip, isAndroid && s.tonal]}>
         {icon}
       </Glass>
-    </Pressable>
+    </Tap>
   );
 }
 
 /**
  * Campo importo grande. Tiene in stato solo le cifre ("5000") ma mostra
  * il numero con il punto delle migliaia ("5.000"), come nel resto dell'app.
+ *
+ * Il campo occupa tutta la larghezza (centrato) e il carattere si riduce man mano
+ * che le cifre aumentano: nessuna cifra viene mai tagliata, nemmeno su Android,
+ * dove un campo che "cresce" col testo viene misurato in ritardo e taglia l'ultima cifra.
  */
 export function AmountInput({value, onChange}: {value: string; onChange: (digits: string) => void}) {
+  const shown = value ? formatSat(Number(value)) : '';
+  const {width} = useWindowDimensions();
+  // larghezza utile (margini delle schermate) e larghezza media di una cifra (~0,6 em)
+  const room = width - 64;
+  const chars = Math.max(shown.length, 4);
+  const size = Math.max(28, Math.min(type.balance.fontSize, Math.floor(room / (chars * 0.62))));
   return (
     <TextInput
-      style={[type.balance, s.amountInput]}
-      value={value ? formatSat(Number(value)) : ''}
+      style={[
+        type.balance,
+        s.amountInput,
+        {fontSize: size, height: Math.round(size * 1.3), letterSpacing: -size * 0.025},
+      ]}
+      value={shown}
       onChangeText={t => onChange(t.replace(/\D/g, '').replace(/^0+/, '').slice(0, 10))}
       keyboardType="number-pad"
       placeholder="0"
       placeholderTextColor={colors.muted}
       keyboardAppearance="dark"
+      cursorColor={colors.amber}
+      selectionColor={isAndroid ? 'rgba(247,147,26,0.35)' : undefined}
       autoFocus
     />
   );
